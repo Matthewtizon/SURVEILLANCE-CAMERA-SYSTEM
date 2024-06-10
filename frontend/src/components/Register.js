@@ -10,7 +10,7 @@ const Register = ({ role }) => {
 
     useEffect(() => {
         if (role !== 'Administrator') {
-            navigate.push('/login');
+            navigate('/login');
         }
     }, [role, navigate]);
 
