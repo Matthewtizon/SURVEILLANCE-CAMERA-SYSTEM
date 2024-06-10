@@ -2,16 +2,14 @@ from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-from flask_cors import CORS 
-
-
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:johnmatthew300@localhost:3306/surveillance_system'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'super-secret-key'
 
-CORS(app, origins=["http://localhost:3000"])
+CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -34,7 +32,6 @@ with app.app_context():
         ))
         db.session.commit()
 
-
 @app.route('/register', methods=['POST'])
 @jwt_required()
 def register():
@@ -43,6 +40,9 @@ def register():
         return jsonify({'message': 'Only administrators can register new users'}), 403
 
     data = request.get_json()
+    if not data or not data.get('username') or not data.get('password') or not data.get('role'):
+        return jsonify({'message': 'Invalid input'}), 400
+
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     new_user = User(username=data['username'], password=hashed_password, role=data['role'])
     db.session.add(new_user)
@@ -52,22 +52,18 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    print("Received data:", data)  # Debugging statement
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'message': 'Invalid input'}), 400
+
     user = User.query.filter_by(username=data['username']).first()
-    if user:
-        print("User found:", user.username)  # Debugging statement
-        if bcrypt.check_password_hash(user.password, data['password']):
-            access_token = create_access_token(identity={'username': user.username, 'role': user.role})
-            user_info = {
-                'username': user.username,
-                'role': user.role,
-            }
-            print("Authentication successful")  # Debugging statement
-            return jsonify(access_token=access_token, user_info=user_info)
-        else:
-            print("Password does not match")  # Debugging statement
-    else:
-        print("User not found")  # Debugging statement
+    if user and bcrypt.check_password_hash(user.password, data['password']):
+        access_token = create_access_token(identity={'username': user.username, 'role': user.role})
+        user_info = {
+            'username': user.username,
+            'role': user.role,
+        }
+        return jsonify(access_token=access_token, user_info=user_info)
+    
     return jsonify({'message': 'Invalid credentials'}), 401
 
 @app.route('/admin-dashboard', methods=['GET'])

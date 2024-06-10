@@ -1,23 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate  } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const Register = ({ role }) => {
+const Register = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [userRole, setUserRole] = useState('');
-    const navigate  = useNavigate ();
-
-    useEffect(() => {
-        if (role !== 'Administrator') {
-            navigate('/login');
-        }
-    }, [role, navigate]);
+    const [userRole, setUserRole] = useState('Security Staff');
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const token = localStorage.getItem('token'); // Assume token is stored in localStorage
+            const token = localStorage.getItem('token');
             const response = await axios.post('http://localhost:5000/register', {
                 username,
                 password,
@@ -28,6 +22,7 @@ const Register = ({ role }) => {
                 }
             });
             console.log(response.data);
+            navigate('/admin-dashboard');
         } catch (error) {
             console.error('Error registering user', error);
         }

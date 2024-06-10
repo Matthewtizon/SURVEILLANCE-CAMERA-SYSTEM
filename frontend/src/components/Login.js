@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const Login = () => {
+const Login = ({ setRole }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -18,8 +18,8 @@ const Login = () => {
             console.log("Response data:", response.data);  // Debugging statement
             localStorage.setItem('token', response.data.access_token);
             
-            // Check if role exists in the response data
             const role = response.data.user_info ? response.data.user_info.role : null;
+            setRole(role);
     
             if (role === 'Administrator') {
                 navigate('/admin-dashboard');
