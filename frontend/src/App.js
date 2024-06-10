@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -8,6 +8,7 @@ import SecurityDashboard from './components/SecurityDashboard';
 
 const App = () => {
     const [role, setRole] = useState(null);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -15,46 +16,36 @@ const App = () => {
         if (token) {
             axios.get('http://localhost:5000/protected', {
                 headers: { Authorization: `Bearer ${token}` }
-            })
-            .then(response => {
+            }).then(response => {
                 setRole(response.data.logged_in_as.role);
-            })
-            .catch(() => {
+                setLoading(false);
+            }).catch(() => {
                 localStorage.removeItem('token');
-                setRole(null);
-                navigate('/login');
+                setLoading(false);
             });
         } else {
-            navigate('/login');
+            setLoading(false);
         }
-    }, [navigate]);
+    }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        setRole(null);
-        navigate('/login');
-    };
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
-        <>
-            <nav>
-                {role && (
-                    <>
-                        {role === 'Administrator' && (
-                            <Link to="/register">Register</Link>
-                        )}
-                        <button onClick={handleLogout}>Logout</button>
-                    </>
-                )}
-            </nav>
-            <Routes>
-                <Route path="/login" element={<Login setRole={setRole} />} />
-                <Route path="/register" element={role === 'Administrator' ? <Register /> : <Navigate to="/login" replace />} />
-                {role === 'Administrator' && <Route path="/admin-dashboard" element={<AdminDashboard />} />}
-                {role === 'Security Staff' && <Route path="/security-dashboard" element={<SecurityDashboard />} />}
-                <Route path="*" element={<Navigate to={role ? (role === 'Administrator' ? "/admin-dashboard" : "/security-dashboard") : "/login"} replace />} />
-            </Routes>
-        </>
+        <Routes>
+            <Route path="/login" element={<Login setRole={setRole} />} />
+            {role === 'Administrator' && (
+                <>
+                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                    <Route path="/register" element={<Register role={role} />} />
+                </>
+            )}
+            {role === 'Security Staff' && (
+                <Route path="/security-dashboard" element={<SecurityDashboard />} />
+            )}
+            <Route path="/" element={role ? <Navigate to={`/${role === 'Administrator' ? 'admin-dashboard' : 'security-dashboard'}`} /> : <Navigate to="/login" />} />
+        </Routes>
     );
 };
 

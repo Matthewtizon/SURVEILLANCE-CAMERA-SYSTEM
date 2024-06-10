@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate, Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -11,20 +10,14 @@ const AdminDashboard = () => {
         if (!token) {
             navigate('/login');
         } else {
-            axios.get('http://localhost:5000/protected', {
-                headers: { Authorization: `Bearer ${token}` }
-            }).then(response => {
-                if (response.data.logged_in_as.role !== 'Administrator') {
-                    navigate('/login');
-                } else {
-                    setLoading(false);
-                }
-            }).catch(() => {
-                localStorage.removeItem('token');
-                navigate('/login');
-            });
+            setLoading(false);
         }
     }, [navigate]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     if (loading) {
         return <div>Loading...</div>;
@@ -33,6 +26,10 @@ const AdminDashboard = () => {
     return (
         <div>
             <h1>Admin Dashboard</h1>
+            <button onClick={handleLogout}>Logout</button>
+            <nav>
+                <Link to="/register">Register New User</Link>
+            </nav>
             {/* Your Admin Dashboard content */}
         </div>
     );

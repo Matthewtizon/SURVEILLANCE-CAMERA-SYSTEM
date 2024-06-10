@@ -49,6 +49,35 @@ def register():
     db.session.commit()
     return jsonify({'message': 'User registered successfully!'})
 
+
+@app.route('/users', methods=['GET'])
+@jwt_required()
+def get_users():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'Administrator':
+        return jsonify({'message': 'Unauthorized'}), 403
+    
+    users = User.query.all()
+    user_list = [{"id": user.id, "username": user.username, "role": user.role} for user in users]
+    return jsonify(user_list), 200
+
+
+@app.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'Administrator':
+        return jsonify({'message': 'Unauthorized'}), 403
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': 'User deleted successfully'}), 200
+    
+
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()

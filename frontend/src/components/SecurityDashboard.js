@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -11,20 +10,14 @@ const SecurityDashboard = () => {
         if (!token) {
             navigate('/login');
         } else {
-            axios.get('http://localhost:5000/protected', {
-                headers: { Authorization: `Bearer ${token}` }
-            }).then(response => {
-                if (response.data.logged_in_as.role !== 'Security Staff') {
-                    navigate('/login');
-                } else {
-                    setLoading(false);
-                }
-            }).catch(() => {
-                localStorage.removeItem('token');
-                navigate('/login');
-            });
+            setLoading(false);
         }
     }, [navigate]);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/login');
+    };
 
     if (loading) {
         return <div>Loading...</div>;
@@ -33,6 +26,7 @@ const SecurityDashboard = () => {
     return (
         <div>
             <h1>Security Dashboard</h1>
+            <button onClick={handleLogout}>Logout</button>
             {/* Your Security Dashboard content */}
         </div>
     );

@@ -15,21 +15,16 @@ const Login = ({ setRole }) => {
                 username,
                 password,
             });
-            console.log("Response data:", response.data);  // Debugging statement
             localStorage.setItem('token', response.data.access_token);
-            
-            const role = response.data.user_info ? response.data.user_info.role : null;
+            const role = response.data.user_info.role;
             setRole(role);
-    
+
             if (role === 'Administrator') {
                 navigate('/admin-dashboard');
             } else if (role === 'Security Staff') {
                 navigate('/security-dashboard');
-            } else {
-                setError('Role not found in response data');
             }
         } catch (err) {
-            console.error("Error:", err.response.data);  // Debugging statement
             setError('Invalid credentials');
         }
     };
