@@ -21,6 +21,12 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     role = db.Column(db.String(50), nullable=False)
 
+
+class Camera(db.Model):
+    camera_id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.String(255), nullable=False)
+    ip_address = db.Column(db.String(255), nullable=False)
+
 with app.app_context():
     db.create_all()
     if db.session.query(User).filter_by(username='johnmatthew').count() < 1:
