@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Header from './Header';
+import './Dashboard.css';
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
+    const [username, setUsername] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -10,24 +14,23 @@ const SecurityDashboard = () => {
         if (!token) {
             navigate('/login');
         } else {
+            const user = JSON.parse(atob(token.split('.')[1]));
+            setUsername(user.username);
             setLoading(false);
         }
     }, [navigate]);
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        navigate('/login');
-    };
 
     if (loading) {
         return <div>Loading...</div>;
     }
 
     return (
-        <div>
-            <h1>Security Dashboard</h1>
-            <button onClick={handleLogout}>Logout</button>
-            {/* Your Security Dashboard content */}
+        <div className="dashboard-container">
+            <Header dashboardType="Security Staff" username={username} />
+            <main className="dashboard-main">
+                <h1>Security Dashboard</h1>
+                {/* Your Security Dashboard content */}
+            </main>
         </div>
     );
 };
