@@ -1,5 +1,6 @@
+// src/App.js
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -9,7 +10,6 @@ import SecurityDashboard from './components/SecurityDashboard';
 const App = () => {
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -29,22 +29,16 @@ const App = () => {
     }, []);
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <div>Loading...</div>; // Show a loading state until the role is determined
     }
 
     return (
         <Routes>
             <Route path="/login" element={<Login setRole={setRole} />} />
-            {role === 'Administrator' && (
-                <>
-                    <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                    <Route path="/register" element={<Register role={role} />} />
-                </>
-            )}
-            {role === 'Security Staff' && (
-                <Route path="/security-dashboard" element={<SecurityDashboard />} />
-            )}
-            <Route path="/" element={role ? <Navigate to={`/${role === 'Administrator' ? 'admin-dashboard' : 'security-dashboard'}`} /> : <Navigate to="/login" />} />
+            <Route path="/register" element={role === 'Administrator' ? <Register /> : <Navigate to="/login" />} />
+            <Route path="/admin-dashboard" element={role === 'Administrator' ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/security-dashboard" element={role === 'Security Staff' ? <SecurityDashboard /> : <Navigate to="/login" />} />
+            <Route path="/" element={<Navigate to={role ? (role === 'Administrator' ? '/admin-dashboard' : '/security-dashboard') : '/login'} />} />
         </Routes>
     );
 };

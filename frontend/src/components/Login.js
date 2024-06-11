@@ -1,9 +1,10 @@
+// src/components/Login.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './Login.css'; // Create and import a CSS file for styling
+import './Login.css'; // Import custom CSS
 
-const Login = () => {
+const Login = ({ setRole }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -19,6 +20,7 @@ const Login = () => {
             localStorage.setItem('token', response.data.access_token);
 
             const role = response.data.user_info ? response.data.user_info.role : null;
+            setRole(role);
 
             if (role === 'Administrator') {
                 navigate('/admin-dashboard');
@@ -34,25 +36,33 @@ const Login = () => {
 
     return (
         <div className="login-container">
+            <h2>Login</h2>
             <form onSubmit={handleSubmit} className="login-form">
-                <h2>Login</h2>
-                <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Username"
-                    className="login-input"
-                />
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    className="login-input"
-                />
+                <div className="form-group">
+                    <label htmlFor="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter username"
+                        required
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter password"
+                        required
+                    />
+                </div>
                 <button type="submit" className="login-button">Login</button>
-                {error && <p className="error-message">{error}</p>}
             </form>
+            {error && <p className="error">{error}</p>}
         </div>
     );
 };

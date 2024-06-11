@@ -1,3 +1,4 @@
+// src/components/AdminDashboard.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -51,10 +52,23 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleDelete = (userId, userUsername) => {
+        if (userUsername === username) {
+            alert("You cannot delete your own account.");
+            return;
+        }
+
+        const confirmation = window.confirm("Are you sure you want to delete this user?");
+        if (confirmation) {
+            deleteUser(userId);
+        }
+    };
+
     return (
         <div className="dashboard-container">
             <Header dashboardType="Administrator" username={username} />
             <main className="dashboard-main">
+                <h1>Admin Dashboard</h1>
                 <button onClick={toggleRegisterForm} className="toggle-button">
                     {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
                 </button>
@@ -76,7 +90,12 @@ const AdminDashboard = () => {
                                 <td>{user.username}</td>
                                 <td>{user.role}</td>
                                 <td>
-                                    <button onClick={() => deleteUser(user.id)} className="delete-button">Delete</button>
+                                    <button
+                                        onClick={() => handleDelete(user.id, user.username)}
+                                        className="delete-button"
+                                    >
+                                        Delete
+                                    </button>
                                 </td>
                             </tr>
                         ))}

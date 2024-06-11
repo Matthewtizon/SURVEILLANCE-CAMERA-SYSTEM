@@ -1,65 +1,60 @@
-// src/components/Register.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import './Register.css'; // Create and import a CSS file for styling
+import './Register.css'; // Import custom CSS
 
 const Register = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [userRole, setUserRole] = useState('');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [message, setMessage] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token'); // Assume token is stored in localStorage
             const response = await axios.post('http://localhost:5000/register', {
                 username,
                 password,
-                role: userRole,
+                role: 'Security Staff', // Directly set the role to 'Security Staff'
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            setSuccess('User registered successfully!');
-            setError('');
+            setMessage(response.data.message);
+            window.location.reload(); // Reload the page after successful registration
         } catch (error) {
-            setError('Error registering user');
-            setSuccess('');
+            console.error('Error registering user', error);
+            setMessage('Error registering user');
         }
     };
 
     return (
         <div className="register-container">
+            <h2>Register a New Security Staff</h2>
+            {message && <p className="message">{message}</p>}
             <form onSubmit={handleSubmit} className="register-form">
-                <h2>Register New User</h2>
-                {error && <p className="error-message">{error}</p>}
-                {success && <p className="success-message">{success}</p>}
-                <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Username"
-                    className="register-input"
-                />
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    className="register-input"
-                />
-                <select
-                    value={userRole}
-                    onChange={(e) => setUserRole(e.target.value)}
-                    className="register-input"
-                >
-                    <option value="">Select Role</option>
-                    <option value="Administrator">Administrator</option>
-                    <option value="Security Staff">Security Staff</option>
-                </select>
+                <div className="form-group">
+                    <label htmlFor="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="Enter username"
+                        required
+                    />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter password"
+                        required
+                    />
+                </div>
                 <button type="submit" className="register-button">Register</button>
             </form>
         </div>

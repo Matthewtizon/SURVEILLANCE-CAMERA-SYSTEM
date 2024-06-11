@@ -29,12 +29,12 @@ class Camera(db.Model):
 
 with app.app_context():
     db.create_all()
-    if db.session.query(User).filter_by(username='johnmatthew').count() < 1:
-        hashed_password = bcrypt.generate_password_hash('johnmatthew300').decode('utf-8')
+    if db.session.query(User).filter_by(username='yasoob').count() < 1:
+        hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
         db.session.add(User(
-            username='johnmatthew',
+            username='yasoob',
             password=hashed_password,
-            role='Security Staff'
+            role='Administrator'
         ))
         db.session.commit()
 
