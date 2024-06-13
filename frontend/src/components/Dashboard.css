@@ -1,53 +1,61 @@
+/* src/components/Dashboard.css */
 .dashboard-container {
+  font-family: Arial, sans-serif;
+}
+
+.dashboard-header {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  padding: 2rem;
+  padding: 10px;
+  background-color: #282c34;
+  color: white;
 }
 
 .dashboard-main {
-  width: 100%;
-  max-width: 800px;
-  background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
 }
 
-h1{
-  color: #ffffff;
-}
-
-h2 {
-  color: #333;
-}
-
-.toggle-button, .delete-button {
-  padding: 0.5rem 1rem;
+.toggle-button {
+  margin: 20px 0;
+  padding: 10px 20px;
   background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  margin: 0.5rem 0;
 }
 
-.toggle-button:hover, .delete-button:hover {
+.toggle-button:hover {
   background-color: #0056b3;
 }
 
 .user-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
+  margin-top: 20px;
 }
 
-.user-table th, .user-table td {
+.user-table th,
+.user-table td {
   border: 1px solid #ddd;
-  padding: 0.5rem;
-  text-align: left;
+  padding: 8px;
 }
 
 .user-table th {
   background-color: #f2f2f2;
+  text-align: left;
+}
+
+.delete-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
 }

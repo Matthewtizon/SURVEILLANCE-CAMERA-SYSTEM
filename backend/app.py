@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_cors import CORS
+import cv2  # Add OpenCV import
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:johnmatthew300@localhost:3306/surveillance_system'
@@ -21,11 +22,9 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     role = db.Column(db.String(50), nullable=False)
 
-
 class Camera(db.Model):
-    camera_id = db.Column(db.Integer, primary_key=True)
-    location = db.Column(db.String(255), nullable=False)
-    ip_address = db.Column(db.String(255), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.String(255), nullable=False)  # Changed from ip_address to location
 
 with app.app_context():
     db.create_all()
@@ -116,6 +115,46 @@ def security_dashboard():
     if current_user['role'] != 'Security Staff':
         return jsonify({'message': 'Unauthorized'}), 403
     return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
+
+@app.route('/add_camera', methods=['POST'])
+@jwt_required()
+def add_camera():
+    current_user = get_jwt_identity()
+    if current_user['role'] != 'Administrator':
+        return jsonify({'message': 'Unauthorized'}), 403
+
+    data = request.get_json()
+    new_camera = Camera(location=data['location'])  # Updated to use 'location' instead of 'ip_address'
+    db.session.add(new_camera)
+    db.session.commit()
+    return jsonify({'message': 'Camera added successfully!'})
+
+@app.route('/cameras', methods=['GET'])
+@jwt_required()
+def get_cameras():
+    cameras = Camera.query.all()
+    camera_list = [{'id': cam.id, 'location': cam.location} for cam in cameras]  # Updated to return 'location' instead of 'ip_address'
+    return jsonify(camera_list)
+
+# Route to get camera feed (simplified example, assuming the feed is an MJPEG stream)
+@app.route('/camera_feed/<int:camera_id>')
+@jwt_required()
+def camera_feed(camera_id):
+    camera = Camera.query.get_or_404(camera_id)
+    ip_address = camera.ip_address
+
+    def generate():
+        cap = cv2.VideoCapture(ip_address)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            ret, jpeg = cv2.imencode('.jpg', frame)
+            frame = jpeg.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
+
+    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/protected', methods=['GET'])
 @jwt_required()

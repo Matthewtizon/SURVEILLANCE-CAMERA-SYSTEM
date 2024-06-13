@@ -1,0 +1,27 @@
+/* src/components/CameraFeeds.css */
+.camera-feeds-container {
+  margin-top: 20px;
+}
+
+.camera-feeds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.camera-feed {
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 4px;
+  width: calc(33.333% - 20px);
+  box-sizing: border-box;
+}
+
+.camera-feed h3 {
+  margin-top: 0;
+}
+
+.camera-feed img {
+  max-width: 100%;
+  height: auto;
+}

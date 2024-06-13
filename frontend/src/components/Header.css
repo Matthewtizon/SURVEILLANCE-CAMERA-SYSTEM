@@ -1,29 +1,26 @@
-.header {
+/* src/components/Header.css */
+.dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  padding: 1rem;
-  background-color: #282c34;
+  padding: 10px 20px;
+  background-color: #343a40;
   color: white;
 }
 
-.header-left h1 {
+.dashboard-header h1 {
   margin: 0;
 }
 
-.header-right {
+.dashboard-header div {
   display: flex;
   align-items: center;
 }
 
-.header-right span {
-  margin-right: 1rem;
-}
-
 .logout-button {
-  padding: 0.5rem 1rem;
-  background-color: #ff4d4f;
+  margin-left: 20px;
+  padding: 5px 10px;
+  background-color: #dc3545;
   color: white;
   border: none;
   border-radius: 4px;
@@ -31,5 +28,5 @@
 }
 
 .logout-button:hover {
-  background-color: #ff7875;
+  background-color: #c82333;
 }

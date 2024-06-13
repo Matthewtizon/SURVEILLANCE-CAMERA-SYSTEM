@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import CameraFeeds from './CameraFeeds';
 import Register from './Register';
 import './Dashboard.css';
 
@@ -101,6 +102,8 @@ const AdminDashboard = () => {
                         ))}
                     </tbody>
                 </table>
+                <h2>Camera Feeds</h2>
+                <CameraFeeds />
             </main>
         </div>
     );
