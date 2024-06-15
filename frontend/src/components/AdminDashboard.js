@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import CameraFeeds from './CameraFeeds';
+import CameraStream from './CameraStream';
 import Register from './Register';
 import './Dashboard.css';
 
@@ -15,55 +15,55 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login');
-        } else {
-            const user = JSON.parse(atob(token.split('.')[1]));
-            setUsername(user.username);
-            axios.get('http://localhost:5000/users', {
-                headers: { Authorization: `Bearer ${token}` }
-            }).then(response => {
+        const fetchUserData = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+            
+            try {
+                const response = await axios.get('http://localhost:5000/users', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
                 setUsers(response.data);
                 setLoading(false);
-            }).catch(() => {
+                
+                const user = JSON.parse(atob(token.split('.')[1]));
+                setUsername(user.username);
+            } catch (error) {
+                console.error('Error fetching users:', error);
                 localStorage.removeItem('token');
                 navigate('/login');
-            });
-        }
+            }
+        };
+
+        fetchUserData();
     }, [navigate]);
 
-    if (loading) {
-        return <div>Loading...</div>;
-    }
+    const deleteUser = async (userId, username) => {
+        const token = localStorage.getItem('token');
+        
+        try {
+            const response = await axios.delete(`http://localhost:5000/users/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.status === 200) {
+                setUsers(users.filter(user => user.user_id !== userId));
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+        }
+    };
 
     const toggleRegisterForm = () => {
         setShowRegisterForm(!showRegisterForm);
     };
 
-    const deleteUser = async (userId) => {
-        const token = localStorage.getItem('token');
-        try {
-            await axios.delete(`http://localhost:5000/users/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setUsers(users.filter(user => user.id !== userId));
-        } catch (error) {
-            console.error('Error deleting user', error);
-        }
-    };
-
-    const handleDelete = (userId, userUsername) => {
-        if (userUsername === username) {
-            alert("You cannot delete your own account.");
-            return;
-        }
-
-        const confirmation = window.confirm("Are you sure you want to delete this user?");
-        if (confirmation) {
-            deleteUser(userId);
-        }
-    };
+    if (loading) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className="dashboard-container">
@@ -86,13 +86,13 @@ const AdminDashboard = () => {
                     </thead>
                     <tbody>
                         {users.map(user => (
-                            <tr key={user.id}>
-                                <td>{user.id}</td>
+                            <tr key={user.user_id}>
+                                <td>{user.user_id}</td>
                                 <td>{user.username}</td>
                                 <td>{user.role}</td>
                                 <td>
                                     <button
-                                        onClick={() => handleDelete(user.id, user.username)}
+                                        onClick={() => deleteUser(user.user_id, user.username)}
                                         className="delete-button"
                                     >
                                         Delete
@@ -102,8 +102,7 @@ const AdminDashboard = () => {
                         ))}
                     </tbody>
                 </table>
-                <h2>Camera Feeds</h2>
-                <CameraFeeds />
+                <CameraStream cameraId={1} /> {/* Example camera ID */}
             </main>
         </div>
     );

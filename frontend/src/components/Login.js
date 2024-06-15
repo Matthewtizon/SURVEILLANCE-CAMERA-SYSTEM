@@ -16,10 +16,17 @@ const Login = ({ setRole }) => {
             const response = await axios.post('http://localhost:5000/login', {
                 username,
                 password,
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                withCredentials: true
             });
-            localStorage.setItem('token', response.data.access_token);
+            const { access_token, user_info } = response.data;
 
-            const role = response.data.user_info ? response.data.user_info.role : null;
+            localStorage.setItem('token', access_token);
+
+            const role = user_info ? user_info.role : null;
             setRole(role);
 
             if (role === 'Administrator') {
@@ -30,6 +37,7 @@ const Login = ({ setRole }) => {
                 setError('Role not found in response data');
             }
         } catch (err) {
+            console.error('Login Error:', err);
             setError('Invalid credentials');
         }
     };
