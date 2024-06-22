@@ -1,31 +1,43 @@
+// src/components/CameraStream.js
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './CameraStream.css';
 
-const CameraStream = ({ cameraId }) => {
-    const [streamUrl, setStreamUrl] = useState('');
+const CameraStream = () => {
+    const [streams, setStreams] = useState([]);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        const fetchStreamUrl = () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                setStreamUrl(`http://localhost:5000/camera_feed/${cameraId}?token=${token}`);
-            } else {
-                console.error('No token found');
+        const token = localStorage.getItem('token');
+        const fetchCameras = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/cameras', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+                setStreams(response.data);
+            } catch (error) {
+                console.error('Error fetching camera list:', error);
+                setError('Failed to fetch camera list. Please try again.');
             }
         };
 
-        fetchStreamUrl();
-    }, [cameraId]);
+        fetchCameras();
+    }, []);
 
     return (
-        <div>
-            <h2>Live Camera Stream</h2>
-            {streamUrl && (
-                <img
-                    src={streamUrl}
-                    alt="Live camera stream"
-                    style={{ width: '400px', height: '300px' }}
-                />
-            )}
+        <div className="camera-stream-container">
+            {error && <p className="error">{error}</p>}
+            {streams.map((stream, index) => (
+                <div key={index} className="camera-stream">
+                    <h3>{stream.location}</h3>
+                    <img 
+                        src={`http://localhost:5000/camera_feed/${stream.camera_id}?token=${localStorage.getItem('token')}`} 
+                        alt={`Camera ${stream.camera_id}`} 
+                    />
+                </div>
+            ))}
         </div>
     );
 };

@@ -1,9 +1,8 @@
 // src/components/AdminDashboard.js
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import CameraStream from './CameraStream';
 import Register from './Register';
 import './Dashboard.css';
 
@@ -74,6 +73,7 @@ const AdminDashboard = () => {
                     {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
                 </button>
                 {showRegisterForm && <Register />}
+                <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
                 <h2>User List</h2>
                 <table className="user-table">
                     <thead>
@@ -102,7 +102,6 @@ const AdminDashboard = () => {
                         ))}
                     </tbody>
                 </table>
-                <CameraStream cameraId={1} /> {/* Example camera ID */}
             </main>
         </div>
     );

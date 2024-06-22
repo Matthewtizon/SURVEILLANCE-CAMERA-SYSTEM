@@ -1,0 +1,18 @@
+/* src/components/CameraStream.css */
+.camera-stream-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+}
+
+.camera-stream {
+  margin: 20px;
+  text-align: center;
+}
+
+.camera-stream img {
+  width: 400px;
+  height: auto;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+}

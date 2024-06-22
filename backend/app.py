@@ -12,7 +12,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'super-secret-key'
 
 # Configure CORS
-CORS(app, origins=["http://localhost:3000"], supports_credentials=True, allow_headers=["Content-Type", "Authorization"])
+CORS(app, origins=["http://localhost:3000"], supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -113,7 +113,7 @@ def admin_dashboard():
 @jwt_required()
 def security_dashboard():
     current_user = get_jwt_identity()
-    if current_user['role' != 'Security Staff']:
+    if current_user['role'] != 'Security Staff':
         return jsonify({'message': 'Unauthorized'}), 403
     return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
 
@@ -151,6 +151,17 @@ def camera_feed(camera_id):
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/cameras', methods=['GET'])
+@jwt_required()
+def get_cameras():
+    current_user = get_jwt_identity()
+    if current_user['role'] not in ['Administrator', 'Security Staff']:
+        return jsonify({'message': 'Unauthorized'}), 403
+
+    cameras = Camera.query.all()
+    camera_list = [{"camera_id": camera.camera_id, "location": camera.location} for camera in cameras]
+    return jsonify(camera_list), 200
 
 @app.route('/protected', methods=['GET'])
 @jwt_required()

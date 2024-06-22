@@ -1,5 +1,6 @@
+// src/components/SecurityDashboard.js
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
 import './Dashboard.css';
@@ -10,14 +11,28 @@ const SecurityDashboard = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login');
-        } else {
-            const user = JSON.parse(atob(token.split('.')[1]));
-            setUsername(user.username);
-            setLoading(false);
-        }
+        const fetchUserData = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+            
+            try {
+                const response = await axios.get('http://localhost:5000/protected', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const user = response.data.logged_in_as;
+                setUsername(user.username);
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                localStorage.removeItem('token');
+                navigate('/login');
+            }
+        };
+
+        fetchUserData();
     }, [navigate]);
 
     if (loading) {
@@ -29,7 +44,7 @@ const SecurityDashboard = () => {
             <Header dashboardType="Security Staff" username={username} />
             <main className="dashboard-main">
                 <h1>Security Dashboard</h1>
-                {/* Your Security Dashboard content */}
+                <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
             </main>
         </div>
     );
