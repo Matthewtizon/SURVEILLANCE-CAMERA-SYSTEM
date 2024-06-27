@@ -20,18 +20,20 @@ const AdminDashboard = () => {
                 navigate('/login');
                 return;
             }
-            
+
             try {
-                const response = await axios.get('http://localhost:5000/users', {
+                const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setUsers(response.data);
+                setUsername(response.data.logged_in_as.username); // Ensure this is correct
                 setLoading(false);
-                
-                const user = JSON.parse(atob(token.split('.')[1]));
-                setUsername(user.username);
+
+                const userResponse = await axios.get('http://localhost:5000/users', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUsers(userResponse.data);
             } catch (error) {
-                console.error('Error fetching users:', error);
+                console.error('Error fetching user data:', error);
                 localStorage.removeItem('token');
                 navigate('/login');
             }
@@ -40,9 +42,9 @@ const AdminDashboard = () => {
         fetchUserData();
     }, [navigate]);
 
-    const deleteUser = async (userId, username) => {
+    const deleteUser = async (userId) => {
         const token = localStorage.getItem('token');
-        
+
         try {
             const response = await axios.delete(`http://localhost:5000/users/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -92,7 +94,7 @@ const AdminDashboard = () => {
                                 <td>{user.role}</td>
                                 <td>
                                     <button
-                                        onClick={() => deleteUser(user.user_id, user.username)}
+                                        onClick={() => deleteUser(user.user_id)}
                                         className="delete-button"
                                     >
                                         Delete

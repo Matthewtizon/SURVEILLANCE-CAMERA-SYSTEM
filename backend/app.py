@@ -101,6 +101,7 @@ def login():
     
     return jsonify({'message': 'Invalid credentials'}), 401
 
+
 @app.route('/admin-dashboard', methods=['GET'])
 @jwt_required()
 def admin_dashboard():

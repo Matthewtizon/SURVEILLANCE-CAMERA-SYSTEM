@@ -1,18 +1,22 @@
 /* src/components/CameraStream.css */
 .camera-stream-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-}
-
-.camera-stream {
-  margin: 20px;
   text-align: center;
 }
 
-.camera-stream img {
-  width: 400px;
-  height: auto;
-  border: 2px solid #ccc;
-  border-radius: 8px;
+.back-button {
+  margin: 10px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: #0056b3;
+}
+
+.camera-stream {
+  margin: 20px 0;
 }
