@@ -3,11 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import Register from './Register';
 import './Dashboard.css';
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [username, setUsername] = useState('');
+    const [users, setUsers] = useState([]);
+    const [showRegisterForm, setShowRegisterForm] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -22,9 +25,13 @@ const SecurityDashboard = () => {
                 const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                const user = response.data.logged_in_as;
-                setUsername(user.username);
+                setUsername(response.data.logged_in_as.username); // Ensure this is correct
                 setLoading(false);
+
+                const userResponse = await axios.get('http://localhost:5000/users', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUsers(userResponse.data);
             } catch (error) {
                 console.error('Error fetching user data:', error);
                 localStorage.removeItem('token');
@@ -35,6 +42,26 @@ const SecurityDashboard = () => {
         fetchUserData();
     }, [navigate]);
 
+    const deleteUser = async (userId) => {
+        const token = localStorage.getItem('token');
+
+        try {
+            const response = await axios.delete(`http://localhost:5000/users/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.status === 200) {
+                setUsers(users.filter(user => user.user_id !== userId));
+            }
+        } catch (error) {
+            console.error('Error deleting user:', error);
+        }
+    };
+
+    const toggleRegisterForm = () => {
+        setShowRegisterForm(!showRegisterForm);
+    };
+
     if (loading) {
         return <div>Loading...</div>;
     }
@@ -43,8 +70,39 @@ const SecurityDashboard = () => {
         <div className="dashboard-container">
             <Header dashboardType="Security Staff" username={username} />
             <main className="dashboard-main">
-                <h1>Security Dashboard</h1>
+                <button onClick={toggleRegisterForm} className="toggle-button">
+                        {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
+                </button>
+                {showRegisterForm && <Register />}
                 <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
+                <h2>User List</h2>
+                <table className="user-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map(user => (
+                            <tr key={user.user_id}>
+                                <td>{user.user_id}</td>
+                                <td>{user.username}</td>
+                                <td>{user.role}</td>
+                                <td>
+                                    <button
+                                        onClick={() => deleteUser(user.user_id)}
+                                        className="delete-button"
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </main>
         </div>
     );

@@ -59,12 +59,7 @@ def register():
     return jsonify({'message': 'User registered successfully!'})
 
 @app.route('/users', methods=['GET'])
-@jwt_required()
 def get_users():
-    current_user = get_jwt_identity()
-    if current_user['role'] != 'Administrator':
-        return jsonify({'message': 'Unauthorized'}), 403
-    
     users = User.query.all()
     user_list = [{"user_id": user.user_id, "username": user.username, "role": user.role} for user in users]
     return jsonify(user_list), 200
