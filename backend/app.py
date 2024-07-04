@@ -4,7 +4,8 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
-from camera import detect_cameras_and_save
+from threading import Thread
+from camera import monitor_cameras
 
 from config import Config
 from db import db, jwt
@@ -51,7 +52,18 @@ def protected():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
 
-if __name__ == '__main__':
+# Function to start monitoring cameras
+def start_monitoring_cameras():
     with app.app_context():
-       detect_cameras_and_save()
-    app.run(debug=True)
+        monitor_cameras()
+
+if __name__ == '__main__':
+    try:
+        thread = Thread(target=start_monitoring_cameras)
+        thread.daemon = True
+        thread.start()
+        app.run(debug=True)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received. Stopping Flask application.")
+    except Exception as e:
+        print(f"Unexpected error occurred: {e}")
