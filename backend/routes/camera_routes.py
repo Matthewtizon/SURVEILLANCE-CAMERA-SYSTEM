@@ -1,10 +1,8 @@
 # routes/camera_routes.py
-from flask import Blueprint, jsonify, request, Response, stream_with_context
+from flask import Blueprint, jsonify, request, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, decode_token
-import cv2
-import imutils
 from models import Camera
-from db import db
+from camera import generate_camera_feed
 
 camera_bp = Blueprint('camera_bp', __name__)
 
@@ -22,8 +20,12 @@ def camera_feed(camera_id):
 
     if current_user['role'] not in ['Administrator', 'Security Staff']:
         return jsonify({'message': 'Unauthorized'}), 403
+    
+    def generate_feed():
+        for frame in generate_camera_feed(camera_id):
+            yield frame
 
-    return jsonify({'message': 'okay'}), 200
+    return Response(generate_feed(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @camera_bp.route('/cameras', methods=['GET'])
 @jwt_required()
@@ -35,5 +37,3 @@ def get_cameras():
     cameras = Camera.query.all()
     camera_list = [{"camera_id": camera.camera_id, "location": camera.location} for camera in cameras]
     return jsonify(camera_list), 200
-
-

@@ -16,6 +16,7 @@ const CameraStream = () => {
         const token = localStorage.getItem('token');
         const fetchUserData = async () => {
             try {
+                // Fetch user data
                 const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -23,6 +24,7 @@ const CameraStream = () => {
                 setUsername(user.username);
                 setRole(user.role);
 
+                // Fetch camera streams
                 const streamsResponse = await axios.get('http://localhost:5000/cameras', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -49,9 +51,10 @@ const CameraStream = () => {
             <Header dashboardType="Camera Stream" username={username} />
             {error && <p className="error">{error}</p>}
             <button onClick={handleBackClick} className="back-button">Back to Dashboard</button>
-            {streams.map((stream, index) => (
-                <div key={index} className="camera-stream">
+            {streams.map((stream) => (
+                <div key={stream.camera_id} className="camera-stream">
                     <h3>{stream.location}</h3>
+                    {/* Display camera feed */}
                     <img
                         src={`http://localhost:5000/camera_feed/${stream.camera_id}?token=${localStorage.getItem('token')}`}
                         alt={`Camera ${stream.camera_id}`}

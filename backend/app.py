@@ -2,16 +2,14 @@
 from flask import Flask, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
 from camera import monitor_cameras
 from models import User
 
 from config import Config
-from db import db, jwt
-from routes.user_routes import user_bp
-from routes.camera_routes import camera_bp
+from db import db
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -21,10 +19,14 @@ CORS(app, origins=["http://localhost:3000"], supports_credentials=True, allow_he
 
 bcrypt = Bcrypt(app)
 db.init_app(app)
-jwt.init_app(app)
+jwt = JWTManager(app)  # Initialize JWTManager
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
+
+# Import blueprints
+from routes.user_routes import user_bp
+from routes.camera_routes import camera_bp
 
 # Register Blueprints
 app.register_blueprint(user_bp)
@@ -69,6 +71,7 @@ if __name__ == '__main__':
                 role='Administrator'
             ))
             db.session.commit()
+    
     try:
         thread = Thread(target=start_monitoring_cameras)
         thread.daemon = True
