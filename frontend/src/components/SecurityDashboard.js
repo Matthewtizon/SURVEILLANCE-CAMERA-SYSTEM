@@ -43,7 +43,6 @@ const SecurityDashboard = () => {
         <div className="dashboard-container">
             <Header dashboardType="Security Staff" username={username} />
             <main className="dashboard-main">
-                <h1>Security Dashboard</h1>
                 <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
             </main>
         </div>

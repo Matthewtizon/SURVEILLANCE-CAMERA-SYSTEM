@@ -70,7 +70,6 @@ const AdminDashboard = () => {
         <div className="dashboard-container">
             <Header dashboardType="Administrator" username={username} />
             <main className="dashboard-main">
-                <h1>Admin Dashboard</h1>
                 <button onClick={toggleRegisterForm} className="toggle-button">
                     {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
                 </button>
