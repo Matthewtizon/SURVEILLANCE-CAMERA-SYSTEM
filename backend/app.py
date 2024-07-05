@@ -6,6 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 from threading import Thread
 from camera import monitor_cameras
+from models import User
 
 from config import Config
 from db import db, jwt
@@ -58,6 +59,16 @@ def start_monitoring_cameras():
         monitor_cameras()
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+        if db.session.query(User).filter_by(username='yasoob').count() < 1:
+            hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
+            db.session.add(User(
+                username='yasoob',
+                password=hashed_password,
+                role='Administrator'
+            ))
+            db.session.commit()
     try:
         thread = Thread(target=start_monitoring_cameras)
         thread.daemon = True
