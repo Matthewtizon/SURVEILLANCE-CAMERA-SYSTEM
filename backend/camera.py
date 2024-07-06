@@ -1,27 +1,37 @@
-# backend/camera.py
 import cv2
 import time
 from threading import Thread
+from queue import Queue
 from db import db
 from models import Camera
-from flask import current_app, Response
 import traceback
+
+# Dictionary to store queues for each camera
+camera_queues = {}
 
 # Function to continuously capture frames from a camera
 def capture_frames(camera, camera_location):
+    queue = Queue(maxsize=10)
+    camera_queues[camera_location] = queue
+    
     while True:
         ret, frame = camera.read()
         if not ret:
             print(f"Failed to grab frame from {camera_location}. Releasing camera.")
             break
-        # Here you can save the frame to be streamed or processed further
-        # Example: cv2.imshow(camera_location, frame) - To display the frame
-        time.sleep(1)  # Add a sleep interval to reduce CPU usage
+        if not queue.full():
+            queue.put(frame)
+        # Uncomment the following lines to display the frame for debugging
+        cv2.imshow(camera_location, frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        time.sleep(0.1)  # Reduced sleep interval for smoother frame rate
     camera.release()
+    cv2.destroyAllWindows()
 
 # Function to detect cameras and save information to the database
 def detect_cameras_and_save():
-    backends = [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_V4L2]
+    backends = [cv2.CAP_DSHOW]  # Use only DSHOW backend
     for port in range(4):  # Increase the port range if needed
         for backend in backends:
             camera = cv2.VideoCapture(port, backend)
@@ -46,7 +56,7 @@ def detect_cameras_and_save():
                     traceback.print_exc()
                     camera.release()
             else:
-                backend_name = {cv2.CAP_DSHOW: "DSHOW", cv2.CAP_MSMF: "MSMF", cv2.CAP_V4L2: "V4L2"}.get(backend, backend)
+                backend_name = {cv2.CAP_DSHOW: "DSHOW"}.get(backend, backend)
                 print(f"No camera detected at port {port} using backend {backend_name}.")
                 camera.release()
 
@@ -61,26 +71,6 @@ def monitor_cameras(interval=60):
             traceback.print_exc()
             time.sleep(interval)
 
-# Function to generate camera feed
-def generate_camera_feed(camera_id):
-    with current_app.app_context():
-        camera = Camera.query.get(camera_id)
-        if camera is None:
-            return Response("Camera not found", status=404)
-
-        # Example logic to capture frames (replace with your actual camera handling)
-        def generate():
-            capture = cv2.VideoCapture(camera.url)  # Example: camera.url should be the URL or identifier for the camera
-            while True:
-                ret, frame = capture.read()
-                if not ret:
-                    break
-                # Convert frame to JPEG format
-                ret, jpeg = cv2.imencode('.jpg', frame)
-                if not ret:
-                    break
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
-            capture.release()
-
-        return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+# Run monitor_cameras on startup
+if __name__ == "__main__":
+    monitor_cameras()

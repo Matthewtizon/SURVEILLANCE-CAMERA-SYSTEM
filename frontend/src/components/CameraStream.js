@@ -6,36 +6,61 @@ import Header from './Header';
 import './CameraStream.css';
 
 const CameraStream = () => {
-    const [streams, setStreams] = useState([]);
     const [error, setError] = useState('');
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
+    const [cameraFeeds, setCameraFeeds] = useState([]);
     const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+    
+        // Fetch user data
         const fetchUserData = async () => {
             try {
-                // Fetch user data
                 const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const user = response.data.logged_in_as;
                 setUsername(user.username);
                 setRole(user.role);
-
-                // Fetch camera streams
-                const streamsResponse = await axios.get('http://localhost:5000/cameras', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setStreams(streamsResponse.data);
             } catch (error) {
-                console.error('Error fetching data:', error);
-                setError('Failed to fetch data. Please try again.');
+                console.error('Error fetching user data:', error);
+                setError('Failed to fetch user data. Please try again.');
+    
+                // Example token refresh logic
+                const refreshToken = await axios.post('http://localhost:5000/refresh_token', {
+                    refresh_token: localStorage.getItem('refresh_token')
+                });
+    
+                if (refreshToken.data && refreshToken.data.access_token) {
+                    localStorage.setItem('token', refreshToken.data.access_token);
+                    // Retry fetching user data or camera streams
+                    fetchUserData();
+                    fetchCameraStreams();
+                } else {
+                    console.error('Failed to refresh token:', refreshToken.data);
+                }
             }
         };
-
+    
+        // Fetch camera streams
+        const fetchCameraStreams = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/cameras', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const cameras = response.data;
+                const streams = cameras.map(camera => `http://localhost:5000/camera_feed/${camera.location}?token=${token}`);
+                setCameraFeeds(streams);
+            } catch (error) {
+                console.error('Error fetching camera streams:', error);
+                setError('Failed to fetch camera streams. Please try again.');
+            }
+        };
+    
         fetchUserData();
+        fetchCameraStreams();
     }, []);
 
     const handleBackClick = () => {
@@ -51,16 +76,11 @@ const CameraStream = () => {
             <Header dashboardType="Camera Stream" username={username} />
             {error && <p className="error">{error}</p>}
             <button onClick={handleBackClick} className="back-button">Back to Dashboard</button>
-            {streams.map((stream) => (
-                <div key={stream.camera_id} className="camera-stream">
-                    <h3>{stream.location}</h3>
-                    {/* Display camera feed */}
-                    <img
-                        src={`http://localhost:5000/camera_feed/${stream.camera_id}?token=${localStorage.getItem('token')}`}
-                        alt={`Camera ${stream.camera_id}`}
-                    />
-                </div>
-            ))}
+            <div className="camera-feeds">
+                {cameraFeeds.map((feedUrl, index) => (
+                    <img key={index} src={feedUrl} alt={`Camera Feed ${index}`} />
+                ))}
+            </div>
         </div>
     );
 };
