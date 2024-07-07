@@ -1,59 +1,64 @@
-# app.py
 from flask import Flask, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
-from camera import monitor_cameras
 from models import User
+from camera import monitor_cameras
 
 from config import Config
 from db import db
+from socketio_instance import socketio  # Import socketio instance
 
-app = Flask(__name__)
-app.config.from_object(Config)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
 
-# Configure CORS
-CORS(app, origins=["http://localhost:3000"], supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
+    # Initialize SocketIO with app
+    socketio.init_app(app)
 
-bcrypt = Bcrypt(app)
-db.init_app(app)
-jwt = JWTManager(app)  # Initialize JWTManager
+    # Configure CORS
+    CORS(app, origins=["http://localhost:3000"], supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
 
-# Setup logging
-logging.basicConfig(level=logging.DEBUG)
+    db.init_app(app)
+    jwt = JWTManager(app)  # Initialize JWTManager
 
-# Import blueprints
-from routes.user_routes import user_bp
-from routes.camera_routes import camera_bp
+    # Setup logging
+    logging.basicConfig(level=logging.DEBUG)
 
-# Register Blueprints
-app.register_blueprint(user_bp)
-app.register_blueprint(camera_bp)
+    # Import blueprints
+    from routes.user_routes import user_bp
+    from routes.camera_routes import camera_bp
 
-# Other routes
-@app.route('/admin-dashboard', methods=['GET'])
-@jwt_required()
-def admin_dashboard():
-    current_user = get_jwt_identity()
-    if current_user['role'] != 'Administrator':
-        return jsonify({'message': 'Unauthorized'}), 403
-    return jsonify({'message': 'Welcome to the Admin Dashboard'}), 200
+    # Register Blueprints
+    app.register_blueprint(user_bp)
+    app.register_blueprint(camera_bp)
 
-@app.route('/security-dashboard', methods=['GET'])
-@jwt_required()
-def security_dashboard():
-    current_user = get_jwt_identity()
-    if current_user['role'] != 'Security Staff':
-        return jsonify({'message': 'Unauthorized'}), 403
-    return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
+    # Other routes
+    @app.route('/admin-dashboard', methods=['GET'])
+    @jwt_required()
+    def admin_dashboard():
+        current_user = get_jwt_identity()
+        if current_user['role'] != 'Administrator':
+            return jsonify({'message': 'Unauthorized'}), 403
+        return jsonify({'message': 'Welcome to the Admin Dashboard'}), 200
 
-@app.route('/protected', methods=['GET'])
-@jwt_required()
-def protected():
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+    @app.route('/security-dashboard', methods=['GET'])
+    @jwt_required()
+    def security_dashboard():
+        current_user = get_jwt_identity()
+        if current_user['role'] != 'Security Staff':
+            return jsonify({'message': 'Unauthorized'}), 403
+        return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
+
+    @app.route('/protected', methods=['GET'])
+    @jwt_required()
+    def protected():
+        current_user = get_jwt_identity()
+        return jsonify(logged_in_as=current_user), 200
+
+    return app, socketio
 
 # Function to start monitoring cameras
 def start_monitoring_cameras():
@@ -61,8 +66,10 @@ def start_monitoring_cameras():
         monitor_cameras()
 
 if __name__ == '__main__':
+    app, socketio = create_app()
     with app.app_context():
         db.create_all()
+        bcrypt = Bcrypt(app)
         if db.session.query(User).filter_by(username='yasoob').count() < 1:
             hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
             db.session.add(User(
@@ -76,7 +83,7 @@ if __name__ == '__main__':
         thread = Thread(target=start_monitoring_cameras)
         thread.daemon = True
         thread.start()
-        app.run(debug=True)
+        socketio.run(app, debug=True)
     except KeyboardInterrupt:
         print("Keyboard interrupt received. Stopping Flask application.")
     except Exception as e:
