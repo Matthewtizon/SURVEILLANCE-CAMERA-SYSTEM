@@ -4,7 +4,7 @@ from models import Camera
 from camera import camera_queues
 from flask_socketio import emit
 import cv2
-from threading import Lock
+from threading import Lock, Thread
 from socketio_instance import socketio  # Import socketio instance
 
 camera_bp = Blueprint('camera_bp', __name__)
@@ -51,12 +51,14 @@ def emit_camera_feed(camera_location):
             ret, jpeg = cv2.imencode('.jpg', frame)
             if ret:
                 jpeg_bytes = jpeg.tobytes()
-                socketio.emit('camera_frame', {'image': True, 'data': jpeg_bytes}, namespace='/camera_feed')  # Removed broadcast=True
+                socketio.emit('camera_frame', {'image': True, 'data': jpeg_bytes, 'cameraLocation': camera_location}, namespace='/')
             else:
                 print("Error encoding frame")
 
     if not thread_lock.locked():
         with thread_lock:
-            emit_frames()
+            thread = Thread(target=emit_frames)
+            thread.daemon = True
+            thread.start()
 
     return jsonify({'message': 'Streaming started'}), 200

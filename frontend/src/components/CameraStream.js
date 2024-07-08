@@ -1,4 +1,3 @@
-// src/components/CameraStream.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +9,9 @@ const CameraStream = () => {
     const [error, setError] = useState('');
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
-    const [cameraFeeds, setCameraFeeds] = useState([]);
+    const [image, setImage] = useState(null); // State to hold the camera frame image
     const navigate = useNavigate();
+    const socket = io('http://localhost:5000'); // Establish Socket.IO connection
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -21,7 +21,6 @@ const CameraStream = () => {
             return;
         }
 
-        // Fetch user data
         const fetchUserData = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/protected', {
@@ -38,62 +37,29 @@ const CameraStream = () => {
 
         fetchUserData();
 
-        // Fetch camera feeds
-        const fetchCameraFeeds = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/cameras', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setCameraFeeds(response.data);
-            } catch (err) {
-                setError('Failed to fetch camera feeds.');
-            }
+        // Start receiving camera frames
+        socket.on('camera_frame', (data) => {
+            const arrayBufferView = new Uint8Array(data.data);
+            const blob = new Blob([arrayBufferView], { type: 'image/jpeg' });
+            const imageUrl = URL.createObjectURL(blob);
+            setImage(imageUrl);
+        });
+
+        // Emit request to start camera feed
+        socket.emit('start_camera_feed', { cameraLocation: 'YourCameraLocation' }); // Replace 'YourCameraLocation' with your actual camera location
+
+        return () => {
+            // Clean up socket listeners
+            socket.off('camera_frame');
         };
 
-        fetchCameraFeeds();
-    }, [navigate]);
-
-    const handleCameraClick = async (cameraLocation) => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setError('Token not found. Please log in again.');
-            return;
-        }
-
-        try {
-            const response = await axios.get(`http://localhost:5000/camera_feed/${encodeURIComponent(cameraLocation)}`, {
-                headers: { Authorization: `Bearer ${token}` },
-                params: { token }
-            });
-
-            if (response.data.message === 'Streaming started') {
-                const socket = io('http://localhost:5000');
-                socket.on('camera_frame', (data) => {
-                    if (data.image) {
-                        const imgSrc = `data:image/jpeg;base64,${data.data}`;
-                        const imgElement = document.getElementById(`camera-${cameraLocation}`);
-                        if (imgElement) {
-                            imgElement.src = imgSrc;
-                        }
-                    }
-                });
-            }
-        } catch (err) {
-            setError('Failed to start camera feed.');
-        }
-    };
+    }, [navigate, socket]);
 
     return (
         <div>
             <Header username={username} role={role} />
             <div className="camera-feed-container">
-                {cameraFeeds.map((feed) => (
-                    <div key={feed.camera_id} className="camera-feed">
-                        <h3>{feed.location}</h3>
-                        <video id={`camera-${feed.location}`} autoPlay></video>
-                        <button onClick={() => handleCameraClick(feed.location)}>View Feed</button>
-                    </div>
-                ))}
+                {image ? <img src={image} alt="Camera Feed" /> : <p>Loading camera feed...</p>}
             </div>
             {error && <p className="error">{error}</p>}
         </div>
