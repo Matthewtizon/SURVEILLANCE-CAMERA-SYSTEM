@@ -1,3 +1,5 @@
+# camera.py
+
 import cv2
 import time
 from threading import Thread
@@ -25,15 +27,11 @@ def capture_frames(camera, camera_location, queue):
                 break
             if not queue.full():
                 queue.put(frame)
-            # Uncomment the following lines to display the frame for debugging
-            #cv2.imshow(camera_location, frame)
-            #if cv2.waitKey(1) & 0xFF == ord('q'):
-            #   break
+                print(f"Captured frame for {camera_location}")  # Debug statement
             time.sleep(0.1)  # Reduced sleep interval for smoother frame rate
     finally:
         camera.release()
         logger.info(f"Camera release completed for {camera_location}")
-        #cv2.destroyAllWindows()
 
 # Function to detect cameras and save information to the database
 def detect_cameras_and_save():
@@ -44,7 +42,7 @@ def detect_cameras_and_save():
                 camera = cv2.VideoCapture(port, backend)
                 if camera.isOpened():
                     try:
-                        camera_location = f"Camera {port+1}"
+                        camera_location = f"Camera {port + 1} - {port * 700}"
                         existing_camera = Camera.query.filter_by(location=camera_location).first()
                         if existing_camera is None:
                             new_camera = Camera(location=camera_location)
@@ -52,7 +50,7 @@ def detect_cameras_and_save():
                             db.session.commit()
                             logger.info(f"New camera detected at port {port} and information saved to the database.")
                         else:
-                            logger.info(f"Camera at port {port} already exists in the database.") 
+                            logger.info(f"Camera at port {port} already exists in the database.")
                         
                         queue = Queue(maxsize=10)
                         camera_queues[camera_location] = queue

@@ -1,3 +1,5 @@
+# camera_routes.py
+
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, decode_token
 from models import Camera
@@ -5,10 +7,33 @@ from camera import camera_queues
 from flask_socketio import emit
 import cv2
 from threading import Lock, Thread
-from socketio_instance import socketio  # Import socketio instance
+from socketio_instance import socketio
+from functools import wraps
+import jwt
 
 camera_bp = Blueprint('camera_bp', __name__)
 thread_lock = Lock()
+
+# Mock secret for JWT decoding (use your actual secret)
+SECRET_KEY = 'your_secret_key'
+
+def token_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.args.get('token')  # get token from query parameter
+
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Token is invalid!'}), 401
+
+        return f(*args, **kwargs)
+    return decorated_function
 
 @camera_bp.route('/cameras', methods=['GET'])
 @jwt_required()
@@ -18,11 +43,12 @@ def get_cameras():
         return jsonify({'message': 'Unauthorized'}), 403
 
     cameras = Camera.query.all()
-    camera_list = [{"camera_id": camera.camera_id, "location": camera.location} for camera in cameras]
+    unique_cameras = {camera.location: camera for camera in cameras}.values()  # Remove duplicates based on location
+    camera_list = [{"camera_id": camera.camera_id, "location": camera.location} for camera in unique_cameras]
     return jsonify(camera_list), 200
 
 @camera_bp.route('/camera_feed/<string:camera_location>', methods=['GET'])
-@jwt_required()
+@token_required
 def camera_feed(camera_location):
     token = request.args.get('token')
     if not token:
@@ -48,6 +74,7 @@ def emit_camera_feed(camera_location):
     def emit_frames():
         while True:
             frame = queue.get()
+            print(f"Emitting frame for {camera_location}")  # Debug statement
             ret, jpeg = cv2.imencode('.jpg', frame)
             if ret:
                 jpeg_bytes = jpeg.tobytes()

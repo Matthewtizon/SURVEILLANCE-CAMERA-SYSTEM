@@ -4,9 +4,8 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
-from models import User
+from models import User, Camera  # Add Camera model here
 from camera import monitor_cameras
-
 from config import Config
 from db import db
 from socketio_instance import socketio  # Import socketio instance
@@ -65,6 +64,18 @@ def start_monitoring_cameras():
     with app.app_context():
         monitor_cameras()
 
+# Function to remove duplicate cameras from the database
+def remove_duplicate_cameras():
+    with app.app_context():
+        cameras = Camera.query.all()
+        unique_cameras = {}
+        for camera in cameras:
+            if camera.location not in unique_cameras:
+                unique_cameras[camera.location] = camera
+            else:
+                db.session.delete(camera)
+        db.session.commit()
+
 if __name__ == '__main__':
     app, socketio = create_app()
     with app.app_context():
@@ -78,12 +89,17 @@ if __name__ == '__main__':
                 role='Administrator'
             ))
             db.session.commit()
+        
+        # Remove duplicate cameras before starting the application
+        remove_duplicate_cameras()
     
     try:
         thread = Thread(target=start_monitoring_cameras)
         thread.daemon = True
         thread.start()
-        socketio.run(app, debug=True)
+        #socketio.run(app, debug=True)
+        # Updated line to include host, port, and use_reloader parameters
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000, use_reloader=False)
     except KeyboardInterrupt:
         print("Keyboard interrupt received. Stopping Flask application.")
     except Exception as e:
