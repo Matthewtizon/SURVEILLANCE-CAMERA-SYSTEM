@@ -1,91 +1,59 @@
-# camera_routes.py
-
-from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, decode_token
+from flask import Blueprint, jsonify, current_app as app
 from models import Camera
-from camera import camera_queues
-from flask_socketio import emit
-import cv2
-from threading import Lock, Thread
-from socketio_instance import socketio
-from functools import wraps
-import jwt
+from db import db
+from camera import camera_queues, frame_data, start_frame_thread
 
 camera_bp = Blueprint('camera_bp', __name__)
-thread_lock = Lock()
-
-# Mock secret for JWT decoding (use your actual secret)
-SECRET_KEY = 'your_secret_key'
-
-def token_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.args.get('token')  # get token from query parameter
-
-        if not token:
-            return jsonify({'message': 'Token is missing!'}), 401
-
-        try:
-            data = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'Token is invalid!'}), 401
-
-        return f(*args, **kwargs)
-    return decorated_function
 
 @camera_bp.route('/cameras', methods=['GET'])
-@jwt_required()
 def get_cameras():
-    current_user = get_jwt_identity()
-    if current_user['role'] not in ['Administrator', 'Security Staff']:
-        return jsonify({'message': 'Unauthorized'}), 403
-
     cameras = Camera.query.all()
-    unique_cameras = {camera.location: camera for camera in cameras}.values()  # Remove duplicates based on location
-    camera_list = [{"camera_id": camera.camera_id, "location": camera.location} for camera in unique_cameras]
-    return jsonify(camera_list), 200
+    camera_list = [{'id': camera.id, 'location': camera.location} for camera in cameras]
+    return jsonify(camera_list)
 
-@camera_bp.route('/camera_feed/<string:camera_location>', methods=['GET'])
-@token_required
-def camera_feed(camera_location):
-    token = request.args.get('token')
-    if not token:
-        return jsonify({'message': 'Token is missing'}), 401
+@camera_bp.route('/camera/<int:id>', methods=['GET'])
+def get_camera(id):
+    camera = Camera.query.get_or_404(id)
+    return jsonify({'id': camera.id, 'location': camera.location})
 
-    try:
-        decoded_token = decode_token(token)
-        current_user = decoded_token['sub']
-    except Exception as e:
-        print(f"Token error: {e}")
-        return jsonify({'message': 'Token is invalid or expired'}), 401
+@camera_bp.route('/start_stream/<int:id>', methods=['GET'])
+def start_camera_stream(id):
+    camera = Camera.query.get_or_404(id)
+    camera_location = camera.location
+    if camera_location in camera_queues:
+        # Start a new thread to emit frames for this camera
+        thread = start_frame_thread(camera_location)
+        return jsonify({'message': f'Started streaming for camera {id} at {camera_location}.'})
+    else:
+        return jsonify({'error': f'Camera {id} at {camera_location} is not available.'}), 404
 
-    if current_user['role'] not in ['Administrator', 'Security Staff']:
-        return jsonify({'message': 'Unauthorized'}), 403
+@camera_bp.route('/stop_stream/<int:id>', methods=['GET'])
+def stop_camera_stream(id):
+    camera = Camera.query.get_or_404(id)
+    camera_location = camera.location
+    # Implement logic to stop the streaming thread if needed
+    return jsonify({'message': f'Stopped streaming for camera {id} at {camera_location}.'})
 
-    return emit_camera_feed(camera_location)
+@camera_bp.route('/latest_frame/<int:id>', methods=['GET'])
+def get_latest_frame(id):
+    camera = Camera.query.get_or_404(id)
+    camera_location = camera.location
+    if camera_location in frame_data:
+        latest_frame = frame_data[camera_location]
+        return jsonify({'frame': latest_frame})
+    else:
+        return jsonify({'error': f'No frame available for camera {id} at {camera_location}.'}), 404
 
-def emit_camera_feed(camera_location):
-    queue = camera_queues.get(camera_location)
-    if queue is None:
-        return jsonify({'message': 'Camera not found'}), 404
+@camera_bp.route('/all_frames', methods=['GET'])
+def get_all_frames():
+    return jsonify(frame_data)
 
-    def emit_frames():
-        while True:
-            frame = queue.get()
-            print(f"Emitting frame for {camera_location}")  # Debug statement
-            ret, jpeg = cv2.imencode('.jpg', frame)
-            if ret:
-                jpeg_bytes = jpeg.tobytes()
-                socketio.emit('camera_frame', {'image': True, 'data': jpeg_bytes, 'cameraLocation': camera_location}, namespace='/')
-            else:
-                print("Error encoding frame")
+@camera_bp.route('/clear_frames', methods=['GET'])
+def clear_all_frames():
+    global frame_data
+    frame_data = {}
+    return jsonify({'message': 'Cleared all frame data.'})
 
-    if not thread_lock.locked():
-        with thread_lock:
-            thread = Thread(target=emit_frames)
-            thread.daemon = True
-            thread.start()
-
-    return jsonify({'message': 'Streaming started'}), 200
+@camera_bp.route('/camera_status', methods=['GET'])
+def get_camera_status():
+    return jsonify({'camera_queues': list(camera_queues.keys()), 'frame_data_keys': list(frame_data.keys())})

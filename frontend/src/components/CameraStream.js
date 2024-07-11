@@ -14,7 +14,6 @@ const CameraStream = () => {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-
         if (!token) {
             setError('Token not found. Please log in again.');
             return;
@@ -36,38 +35,36 @@ const CameraStream = () => {
 
         fetchUserData();
 
-        const socket = socketIOClient('http://localhost:5000', {
-            query: { token }
-        });
+        const socket = socketIOClient('http://localhost:5000');
 
         socket.on('connect', () => {
-            console.log('Connected to socket server');
-        });
-
-        socket.on('camera_frame', (data) => {
-            console.log(`Received frame for ${data.cameraLocation}`);  // Debug statement
-            const imgSrc = `data:image/jpeg;base64,${data.data}`;
-            setFrames((prevFrames) => [...prevFrames, imgSrc]);
+            console.log('Connected to SocketIO');
         });
 
         socket.on('disconnect', () => {
-            console.log('Disconnected from socket server');
+            console.log('Disconnected from SocketIO');
+        });
+
+        socket.on('camera_frame', ({ frame }) => {
+            console.log('Received camera frame');
+            setFrames(prevFrames => [...prevFrames, frame]);
         });
 
         return () => {
             socket.disconnect();
         };
-    }, [navigate]);
+
+    }, []);
 
     return (
         <div>
             <Header username={username} role={role} />
             <div className="camera-feed-container">
-                {frames.map((src, index) => (
-                    <img key={index} src={src} alt={`Frame ${index}`} className="camera-feed-frame" />
+                {frames.length > 0 && frames.map((frame, index) => (
+                    <img key={index} src={`data:image/jpeg;base64,${frame}`} alt={`Frame ${index}`} />
                 ))}
             </div>
-            {error && <p className="error">{error}</p>}
+            {error && <div className="error-message">{error}</div>}
         </div>
     );
 };

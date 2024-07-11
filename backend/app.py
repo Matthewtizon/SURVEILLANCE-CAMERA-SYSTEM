@@ -1,40 +1,30 @@
+# app.py
+
 from flask import Flask, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
-from models import User, Camera  # Add Camera model here
+from models import User, Camera
 from camera import monitor_cameras
 from config import Config
 from db import db
-from socketio_instance import socketio  # Import socketio instance
+from socketio_instance import socketio
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-
-    # Initialize SocketIO with app
-    socketio.init_app(app)
-
-    # Configure CORS
+    socketio.init_app(app, cors_allowed_origins="*")
     CORS(app, origins=["http://localhost:3000"], supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
-
     db.init_app(app)
-    jwt = JWTManager(app)  # Initialize JWTManager
-
-    # Setup logging
+    jwt = JWTManager(app)
     logging.basicConfig(level=logging.DEBUG)
-
-    # Import blueprints
     from routes.user_routes import user_bp
     from routes.camera_routes import camera_bp
-
-    # Register Blueprints
     app.register_blueprint(user_bp)
     app.register_blueprint(camera_bp)
 
-    # Other routes
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
     def admin_dashboard():
@@ -59,12 +49,10 @@ def create_app():
 
     return app, socketio
 
-# Function to start monitoring cameras
 def start_monitoring_cameras():
     with app.app_context():
         monitor_cameras()
 
-# Function to remove duplicate cameras from the database
 def remove_duplicate_cameras():
     with app.app_context():
         cameras = Camera.query.all()
@@ -83,22 +71,13 @@ if __name__ == '__main__':
         bcrypt = Bcrypt(app)
         if db.session.query(User).filter_by(username='yasoob').count() < 1:
             hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
-            db.session.add(User(
-                username='yasoob',
-                password=hashed_password,
-                role='Administrator'
-            ))
+            db.session.add(User(username='yasoob', password=hashed_password, role='Administrator'))
             db.session.commit()
-        
-        # Remove duplicate cameras before starting the application
         remove_duplicate_cameras()
-    
     try:
         thread = Thread(target=start_monitoring_cameras)
         thread.daemon = True
         thread.start()
-        #socketio.run(app, debug=True)
-        # Updated line to include host, port, and use_reloader parameters
         socketio.run(app, debug=True, host='0.0.0.0', port=5000, use_reloader=False)
     except KeyboardInterrupt:
         print("Keyboard interrupt received. Stopping Flask application.")
