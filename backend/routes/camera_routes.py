@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, current_app as app
 from models import Camera
 from db import db
 from camera import camera_queues, frame_data, start_frame_thread
+import base64
+import cv2
 
 camera_bp = Blueprint('camera_bp', __name__)
 
@@ -46,7 +48,14 @@ def get_latest_frame(id):
 
 @camera_bp.route('/all_frames', methods=['GET'])
 def get_all_frames():
-    return jsonify(frame_data)
+    serializable_frames = {}
+    for camera_location, frame in frame_data.items():
+        # Convert frame ndarray to a serializable format, like base64
+        frame_encoded = cv2.imencode('.jpg', frame)[1].tobytes()
+        frame_base64 = base64.b64encode(frame_encoded).decode('utf-8')
+        serializable_frames[camera_location] = frame_base64
+
+    return jsonify(serializable_frames)
 
 @camera_bp.route('/clear_frames', methods=['GET'])
 def clear_all_frames():

@@ -2,13 +2,13 @@ import cv2
 import time
 from threading import Thread, Lock
 from queue import Queue
-import traceback
 import logging
+import traceback
+import base64
 from db import db
 from models import Camera
 from flask import current_app as app
 from socketio_instance import socketio
-import base64
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,14 +26,17 @@ def emit_camera_frames(camera_location):
         with thread_lock:
             if camera_location in frame_data:
                 frame = frame_data[camera_location]
-                frame_data_encoded = cv2.imencode('.jpg', frame)[1].tobytes()  # Convert frame to JPEG bytes
-                frame_base64 = base64.b64encode(frame_data_encoded).decode('utf-8')  # Encode frame to base64
+                # Encode frame to JPEG bytes and then base64
+                frame_data_encoded = cv2.imencode('.jpg', frame)[1].tobytes()
+                frame_base64 = base64.b64encode(frame_data_encoded).decode('utf-8')
                 socketio.emit('camera_frame', {'frame': frame_base64})
         socketio.sleep(0.1)  # Adjust the sleep interval as needed for your frame rate
 
 def start_frame_thread(camera_location):
-    thread = socketio.start_background_task(target=emit_camera_frames, camera_location=camera_location)
-    return thread
+    if camera_location not in camera_queues:
+        # Start only if not already started
+        thread = socketio.start_background_task(target=emit_camera_frames, camera_location=camera_location)
+        return thread
 
 def update_frame_data(camera_location, frame):
     with thread_lock:
@@ -50,11 +53,26 @@ def capture_frames(camera, camera_location, queue):
                 queue.put(frame)
                 update_frame_data(camera_location, frame.copy())  # Store a copy of the frame
                 logger.info(f"Captured frame for {camera_location}")  # Debug statement
+            # Uncomment the following line to display the frame for debugging
+            # cv2.imshow(camera_location, frame)  # Commented out to prevent multiple displays
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
             time.sleep(0.1)  # Reduced sleep interval for smoother frame rate
+
     finally:
         camera.release()
         logger.info(f"Camera release completed for {camera_location}")
+        cv2.destroyAllWindows()
+        # Remove camera from queues and frame data after release
+        if camera_location in camera_queues:
+            del camera_queues[camera_location]
+        with thread_lock:
+            if camera_location in frame_data:
+                del frame_data[camera_location]
 
+# Function to detect cameras and save them in the database
 def detect_cameras_and_save():
     with app.app_context():  # Ensure the application context is available
         backends = [cv2.CAP_DSHOW]  # Use only DSHOW backend
@@ -94,6 +112,7 @@ def detect_cameras_and_save():
                     logger.warning(f"No camera detected at port {port} using backend {backend_name}.")
                     camera.release()
 
+# Function to continuously monitor cameras
 def monitor_cameras(interval=60):
     try:
         while True:
@@ -106,6 +125,7 @@ def monitor_cameras(interval=60):
         logger.error(f"Exception occurred in monitor_cameras thread: {e}")
         traceback.print_exc()
 
+# Function to start monitoring cameras
 def start_monitoring():
     from app import create_app
     
