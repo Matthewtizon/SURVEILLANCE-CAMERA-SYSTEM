@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import socketIOClient from 'socket.io-client';
@@ -9,7 +9,7 @@ const CameraStream = () => {
     const [error, setError] = useState('');
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
-    const [frames, setFrames] = useState([]);
+    const videoRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -45,36 +45,35 @@ const CameraStream = () => {
             console.log('Disconnected from SocketIO');
         });
 
-        socket.on('camera_frame', ({ frame }) => {
-            console.log('Received camera frame');
-            setFrames(prevFrames => [...prevFrames, frame]);
-        });
-
-        // Fetch initial frames from backend
-        const fetchInitialFrames = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/all_frames');
-                setFrames(Object.values(response.data));  // Assuming response.data is an object
-            } catch (err) {
-                console.error('Failed to fetch frames:', err);
-            }
-        };
-
-        fetchInitialFrames();
-
+        // Clean up socket connection
         return () => {
             socket.disconnect();
         };
 
     }, []);
 
+    const startVideoStream = async (cameraId) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/stream_video/${cameraId}`, {
+                responseType: 'blob'  // Ensure response is treated as a blob
+            });
+
+            // Create a URL for the blob object to use in <video> tag
+            const videoURL = URL.createObjectURL(response.data);
+            if (videoRef.current) {
+                videoRef.current.src = videoURL;
+                videoRef.current.play();
+            }
+        } catch (err) {
+            console.error('Failed to start video stream:', err);
+        }
+    };
+
     return (
         <div>
             <Header username={username} role={role} />
             <div className="camera-feed-container">
-                {frames.length > 0 && frames.map((frame, index) => (
-                    <img key={index} src={`data:image/jpeg;base64,${frame}`} alt={`Frame ${index}`} />
-                ))}
+                <video ref={videoRef} width="640" height="480" controls autoPlay></video>
             </div>
             {error && <div className="error-message">{error}</div>}
         </div>

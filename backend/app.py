@@ -79,7 +79,7 @@ def initialize():
         start_camera_monitoring()
 
     try:
-        socketio.run(app, debug=True, host='0.0.0.0', port=5000, use_reloader=True)
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000, use_reloader=False)
     except KeyboardInterrupt:
         print("Keyboard interrupt received. Stopping Flask application.")
     except Exception as e:

@@ -29,7 +29,7 @@ def emit_camera_frames(camera_location):
                 # Encode frame to JPEG bytes and then base64
                 frame_data_encoded = cv2.imencode('.jpg', frame)[1].tobytes()
                 frame_base64 = base64.b64encode(frame_data_encoded).decode('utf-8')
-                socketio.emit('camera_frame', {'frame': frame_base64})
+                socketio.emit('camera_frame', {'frame': frame_base64}, namespace='/')  # Ensure correct namespace
         socketio.sleep(0.1)  # Adjust the sleep interval as needed for your frame rate
 
 def start_frame_thread(camera_location):
@@ -133,6 +133,3 @@ def start_monitoring():
     
     with flask_app.app_context():
         monitor_cameras()
-
-#if __name__ == '__main__':
-#    start_monitoring()
