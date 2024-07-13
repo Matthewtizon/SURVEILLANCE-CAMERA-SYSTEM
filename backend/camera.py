@@ -54,7 +54,7 @@ def capture_frames(camera, camera_location, queue):
                 update_frame_data(camera_location, frame.copy())  # Store a copy of the frame
                 logger.info(f"Captured frame for {camera_location}")  # Debug statement
             # Uncomment the following line to display the frame for debugging
-            # cv2.imshow(camera_location, frame)  # Commented out to prevent multiple displays
+            #cv2.imshow(camera_location, frame)  # Commented out to prevent multiple displays
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -134,5 +134,5 @@ def start_monitoring():
     with flask_app.app_context():
         monitor_cameras()
 
-if __name__ == '__main__':
-    start_monitoring()
+#if __name__ == '__main__':
+#    start_monitoring()

@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
 from models import User, Camera
-from camera import monitor_cameras, start_monitoring  # Import monitor_cameras and start_monitoring functions
+from camera import start_monitoring  # Import start_monitoring function
 from config import Config
 from db import db
 from socketio_instance import socketio
@@ -47,7 +47,7 @@ def create_app():
 
     return app, socketio
 
-def remove_duplicate_cameras():
+def remove_duplicate_cameras(app):
     with app.app_context():
         cameras = Camera.query.all()
         unique_cameras = {}
@@ -58,27 +58,32 @@ def remove_duplicate_cameras():
                 db.session.delete(camera)
         db.session.commit()
 
-if __name__ == '__main__':
+def start_camera_monitoring():
+    monitor_thread = Thread(target=start_monitoring)
+    monitor_thread.daemon = True
+    monitor_thread.start()
+
+def initialize():
     app, socketio = create_app()
-    
+
     with app.app_context():
         db.create_all()
         bcrypt = Bcrypt(app)
-        
+
         if db.session.query(User).filter_by(username='yasoob').count() < 1:
             hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
             db.session.add(User(username='yasoob', password=hashed_password, role='Administrator'))
             db.session.commit()
-        
-        remove_duplicate_cameras()
-        
-        # Start monitoring cameras in a separate thread
-        try:
-            thread = Thread(target=start_monitoring)
-            thread.daemon = True
-            thread.start()
-            socketio.run(app, debug=True, host='0.0.0.0', port=5000, use_reloader=True)
-        except KeyboardInterrupt:
-            print("Keyboard interrupt received. Stopping Flask application.")
-        except Exception as e:
-            print(f"Unexpected error occurred: {e}")
+
+        remove_duplicate_cameras(app)
+        start_camera_monitoring()
+
+    try:
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000, use_reloader=True)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received. Stopping Flask application.")
+    except Exception as e:
+        print(f"Unexpected error occurred: {e}")
+
+if __name__ == '__main__':
+    initialize()

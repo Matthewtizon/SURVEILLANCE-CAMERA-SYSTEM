@@ -1,33 +1,82 @@
-import React, { useEffect, useRef } from 'react';
-import io from 'socket.io-client';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import socketIOClient from 'socket.io-client';
+import Header from './Header';
+import './CameraStream.css';
 
 const CameraStream = () => {
-    const videoRef = useRef(null);
+    const [error, setError] = useState('');
+    const [username, setUsername] = useState('');
+    const [role, setRole] = useState('');
+    const [frames, setFrames] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const socket = io('http://localhost:5000'); // Replace with your server URL
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Token not found. Please log in again.');
+            return;
+        }
 
-        socket.on('camera_frame', (frame) => {
-            console.log('Received frame:', frame); // Log the received frame for debugging
-            if (videoRef.current) {
-                videoRef.current.src = `data:image/jpeg;base64,${frame}`;
+        const fetchUserData = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/protected', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUsername(response.data.logged_in_as.username);
+                setRole(response.data.logged_in_as.role);
+            } catch (err) {
+                setError('Failed to fetch user data. Please log in again.');
+                localStorage.removeItem('token');
+                navigate('/login');
             }
+        };
+
+        fetchUserData();
+
+        const socket = socketIOClient('http://localhost:5000');
+
+        socket.on('connect', () => {
+            console.log('Connected to SocketIO');
         });
 
-        socket.on('connect_error', (error) => {
-            console.error('Connection error:', error); // Log connection errors
+        socket.on('disconnect', () => {
+            console.log('Disconnected from SocketIO');
         });
+
+        socket.on('camera_frame', ({ frame }) => {
+            console.log('Received camera frame');
+            setFrames(prevFrames => [...prevFrames, frame]);
+        });
+
+        // Fetch initial frames from backend
+        const fetchInitialFrames = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/all_frames');
+                setFrames(Object.values(response.data));  // Assuming response.data is an object
+            } catch (err) {
+                console.error('Failed to fetch frames:', err);
+            }
+        };
+
+        fetchInitialFrames();
 
         return () => {
             socket.disconnect();
-            console.log('Socket disconnected'); // Log disconnection
         };
+
     }, []);
 
     return (
         <div>
-            <h2>Camera 1 Stream</h2>
-            <video ref={videoRef} autoPlay controls width="640" height="480" />
+            <Header username={username} role={role} />
+            <div className="camera-feed-container">
+                {frames.length > 0 && frames.map((frame, index) => (
+                    <img key={index} src={`data:image/jpeg;base64,${frame}`} alt={`Frame ${index}`} />
+                ))}
+            </div>
+            {error && <div className="error-message">{error}</div>}
         </div>
     );
 };
