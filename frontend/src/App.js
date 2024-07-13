@@ -20,7 +20,8 @@ const App = () => {
             }).then(response => {
                 setRole(response.data.logged_in_as.role);
                 setLoading(false);
-            }).catch(() => {
+            }).catch(error => {
+                console.error('Error fetching authentication data:', error);
                 localStorage.removeItem('token');
                 setLoading(false);
             });

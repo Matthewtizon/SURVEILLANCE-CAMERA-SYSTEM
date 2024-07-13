@@ -1,63 +1,81 @@
-// src/components/CameraStream.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import socketIOClient from 'socket.io-client';
 import Header from './Header';
 import './CameraStream.css';
 
 const CameraStream = () => {
-    const [streams, setStreams] = useState([]);
     const [error, setError] = useState('');
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
+    const videoRef = useRef(null);
     const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+        if (!token) {
+            setError('Token not found. Please log in again.');
+            return;
+        }
+
         const fetchUserData = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                const user = response.data.logged_in_as;
-                setUsername(user.username);
-                setRole(user.role);
-
-                const streamsResponse = await axios.get('http://localhost:5000/cameras', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setStreams(streamsResponse.data);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                setError('Failed to fetch data. Please try again.');
+                setUsername(response.data.logged_in_as.username);
+                setRole(response.data.logged_in_as.role);
+            } catch (err) {
+                setError('Failed to fetch user data. Please log in again.');
+                localStorage.removeItem('token');
+                navigate('/login');
             }
         };
 
         fetchUserData();
+
+        const socket = socketIOClient('http://localhost:5000');
+
+        socket.on('connect', () => {
+            console.log('Connected to SocketIO');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from SocketIO');
+        });
+
+        // Clean up socket connection
+        return () => {
+            socket.disconnect();
+        };
+
     }, []);
 
-    const handleBackClick = () => {
-        if (role === 'Administrator') {
-            navigate('/admin-dashboard');
-        } else if (role === 'Security Staff') {
-            navigate('/security-dashboard');
+    const startVideoStream = async (cameraId) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/stream_video/${cameraId}`, {
+                responseType: 'blob'  // Ensure response is treated as a blob
+            });
+
+            // Create a URL for the blob object to use in <video> tag
+            const videoURL = URL.createObjectURL(response.data);
+            if (videoRef.current) {
+                videoRef.current.src = videoURL;
+                videoRef.current.play();
+            }
+        } catch (err) {
+            console.error('Failed to start video stream:', err);
         }
     };
 
     return (
-        <div className="camera-stream-container">
-            <Header dashboardType="Camera Stream" username={username} />
-            {error && <p className="error">{error}</p>}
-            <button onClick={handleBackClick} className="back-button">Back to Dashboard</button>
-            {streams.map((stream, index) => (
-                <div key={index} className="camera-stream">
-                    <h3>{stream.location}</h3>
-                    <img
-                        src={`http://localhost:5000/camera_feed/${stream.camera_id}?token=${localStorage.getItem('token')}`}
-                        alt={`Camera ${stream.camera_id}`}
-                    />
-                </div>
-            ))}
+        <div>
+            <Header username={username} role={role} />
+            <div className="camera-feed-container">
+                <video ref={videoRef} width="640" height="480" controls autoPlay></video>
+            </div>
+            {error && <div className="error-message">{error}</div>}
         </div>
     );
 };

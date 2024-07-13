@@ -1,39 +1,27 @@
-# routes/camera_routes.py
-from flask import Blueprint, jsonify, request, Response, stream_with_context
-from flask_jwt_extended import jwt_required, get_jwt_identity, decode_token
-import cv2
-import imutils
+from flask import Blueprint, jsonify, Response
 from models import Camera
-from db import db
+from camera import frame_data
+import cv2
 
 camera_bp = Blueprint('camera_bp', __name__)
 
-@camera_bp.route('/camera_feed/<int:camera_id>')
-def camera_feed(camera_id):
-    token = request.args.get('token')
-    if not token:
-        return jsonify({'message': 'Token is missing'}), 401
-
-    try:
-        decoded_token = decode_token(token)
-        current_user = decoded_token['sub']
-    except Exception as e:
-        return jsonify({'message': 'Token is invalid or expired'}), 401
-
-    if current_user['role'] not in ['Administrator', 'Security Staff']:
-        return jsonify({'message': 'Unauthorized'}), 403
-
-    return jsonify({'message': 'okay'}), 200
-
-@camera_bp.route('/cameras', methods=['GET'])
-@jwt_required()
-def get_cameras():
-    current_user = get_jwt_identity()
-    if current_user['role'] not in ['Administrator', 'Security Staff']:
-        return jsonify({'message': 'Unauthorized'}), 403
-
-    cameras = Camera.query.all()
-    camera_list = [{"camera_id": camera.camera_id, "location": camera.location} for camera in cameras]
-    return jsonify(camera_list), 200
-
-
+@camera_bp.route('/stream_video/<int:id>', methods=['GET'])
+def stream_video(id):
+    camera = Camera.query.get_or_404(id)
+    camera_location = camera.location
+    
+    # Simulated frame data, replace with actual frame retrieval logic
+    # frame_data = get_frame_data(camera_location)
+    if camera_location in frame_data:
+        def generate():
+            while True:
+                frame = frame_data.get(camera_location)
+                if frame is not None:
+                    # Encode frame to JPEG bytes and then yield as response content
+                    frame_encoded = cv2.imencode('.jpg', frame)[1].tobytes()
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_encoded + b'\r\n')
+        
+        return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        return jsonify({'error': f'No frame available for camera {id} at {camera_location}.'}), 404

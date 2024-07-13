@@ -1,65 +1,135 @@
 import cv2
 import time
-from threading import Thread
+from threading import Thread, Lock
+from queue import Queue
+import logging
+import traceback
+import base64
 from db import db
 from models import Camera
-from flask import current_app
-import traceback
+from flask import current_app as app
+from socketio_instance import socketio
 
-# Function to continuously capture frames from a camera
-def capture_frames(camera, camera_location):
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Dictionary to store camera queues and frame data
+camera_queues = {}
+frame_data = {}
+
+# Lock for thread-safe operations
+thread_lock = Lock()
+
+def emit_camera_frames(camera_location):
+    global frame_data
     while True:
-        ret, frame = camera.read()
-        if not ret:
-            print(f"Failed to grab frame from {camera_location}. Releasing camera.")
-            break
-        # Add any processing for each frame if needed
-        time.sleep(1)  # Add a sleep interval to reduce CPU usage
-    camera.release()
+        with thread_lock:
+            if camera_location in frame_data:
+                frame = frame_data[camera_location]
+                # Encode frame to JPEG bytes and then base64
+                frame_data_encoded = cv2.imencode('.jpg', frame)[1].tobytes()
+                frame_base64 = base64.b64encode(frame_data_encoded).decode('utf-8')
+                socketio.emit('camera_frame', {'frame': frame_base64}, namespace='/')  # Ensure correct namespace
+        socketio.sleep(0.1)  # Adjust the sleep interval as needed for your frame rate
 
-# Function to detect cameras and save information to the database
+def start_frame_thread(camera_location):
+    if camera_location not in camera_queues:
+        # Start only if not already started
+        thread = socketio.start_background_task(target=emit_camera_frames, camera_location=camera_location)
+        return thread
+
+def update_frame_data(camera_location, frame):
+    with thread_lock:
+        frame_data[camera_location] = frame
+
+def capture_frames(camera, camera_location, queue):
+    try:
+        while True:
+            ret, frame = camera.read()
+            if not ret:
+                logger.error(f"Failed to grab frame from {camera_location}. Releasing camera.")
+                break
+            if not queue.full():
+                queue.put(frame)
+                update_frame_data(camera_location, frame.copy())  # Store a copy of the frame
+                logger.info(f"Captured frame for {camera_location}")  # Debug statement
+            # Uncomment the following line to display the frame for debugging
+            #cv2.imshow(camera_location, frame)  # Commented out to prevent multiple displays
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            time.sleep(0.1)  # Reduced sleep interval for smoother frame rate
+
+    finally:
+        camera.release()
+        logger.info(f"Camera release completed for {camera_location}")
+        cv2.destroyAllWindows()
+        # Remove camera from queues and frame data after release
+        if camera_location in camera_queues:
+            del camera_queues[camera_location]
+        with thread_lock:
+            if camera_location in frame_data:
+                del frame_data[camera_location]
+
+# Function to detect cameras and save them in the database
 def detect_cameras_and_save():
-    backends = [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_V4L2]
-    for port in range(4):  # Increase the port range if needed
-        for backend in backends:
-            camera = cv2.VideoCapture(port, backend)
-            if camera.isOpened():
-                try:
-                    camera_location = f"Camera {port+1}"
-                    with current_app.app_context():
+    with app.app_context():  # Ensure the application context is available
+        backends = [cv2.CAP_DSHOW]  # Use only DSHOW backend
+        for port in range(4):  # Increase the port range if needed
+            for backend in backends:
+                camera = cv2.VideoCapture(port, backend)
+                if camera.isOpened():
+                    try:
+                        camera_location = f"Camera {port + 1} - {port * 700}"
                         existing_camera = Camera.query.filter_by(location=camera_location).first()
                         if existing_camera is None:
                             new_camera = Camera(location=camera_location)
                             db.session.add(new_camera)
                             db.session.commit()
-                            print(f"New camera detected at port {port} and information saved to the database.")
+                            logger.info(f"New camera detected at port {port} and information saved to the database.")
                         else:
-                            print(f"Camera at port {port} already exists in the database.")
-                    
-                    thread = Thread(target=capture_frames, args=(camera, camera_location))
-                    thread.daemon = True
-                    thread.start()
-                    break
-                except Exception as e:
-                    print(f"Error occurred with camera at port {port} using backend {backend}: {e}")
-                    camera.release()
-            else:
-                backend_name = {cv2.CAP_DSHOW: "DSHOW", cv2.CAP_MSMF: "MSMF", cv2.CAP_V4L2: "V4L2"}.get(backend, backend)
-                print(f"No camera detected at port {port} using backend {backend_name}.")
-                camera.release()
+                            logger.info(f"Camera at port {port} already exists in the database.")
+                        
+                        queue = Queue(maxsize=10)
+                        camera_queues[camera_location] = queue
 
-# Function to continuously check for new cameras
+                        # Start a separate thread to capture frames
+                        thread = Thread(target=capture_frames, args=(camera, camera_location, queue))
+                        thread.daemon = True
+                        thread.start()
+
+                        # Start a thread to emit frames via SocketIO
+                        start_frame_thread(camera_location)
+                        
+                        break
+                    except Exception as e:
+                        logger.error(f"Error occurred with camera at port {port} using backend {backend}: {e}")
+                        traceback.print_exc()
+                        camera.release()
+                else:
+                    backend_name = {cv2.CAP_DSHOW: "DSHOW"}.get(backend, backend)
+                    logger.warning(f"No camera detected at port {port} using backend {backend_name}.")
+                    camera.release()
+
+# Function to continuously monitor cameras
 def monitor_cameras(interval=60):
     try:
         while True:
-            detect_cameras_and_save()
+            with app.app_context():  # Ensure the application context is available
+                detect_cameras_and_save()
             time.sleep(interval)
     except KeyboardInterrupt:
-        print("Keyboard interrupt received. Exiting...")
+        logger.info("KeyboardInterrupt detected. Exiting camera monitoring.")
     except Exception as e:
-        print(f"Unexpected error in monitor_cameras: {e}")
+        logger.error(f"Exception occurred in monitor_cameras thread: {e}")
         traceback.print_exc()
 
-# If this script is run directly, start monitoring cameras
-if __name__ == '__main__':
-    monitor_cameras()
+# Function to start monitoring cameras
+def start_monitoring():
+    from app import create_app
+    
+    flask_app, _ = create_app()  # Assuming create_app returns (app, socketio)
+    
+    with flask_app.app_context():
+        monitor_cameras()
