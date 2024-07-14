@@ -32,15 +32,8 @@ def capture_frames(camera, camera_id, queue):
                 break
             if not queue.full():
                 queue.put(frame)
-<<<<<<< HEAD
-                update_frame_data(camera_location, frame.copy())  # Store a copy of the frame
-                logger.info(f"Captured frame for {camera_location}")  # Debug statement
-            # Uncomment the following line to display the frame for debugging
-            cv2.imshow(camera_location, frame)  # Commented out to prevent multiple displays
-=======
                 update_frame_data(camera_id, frame.copy())
                 logger.info(f"Captured frame for camera {camera_id}")
->>>>>>> new1
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
