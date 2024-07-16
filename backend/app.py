@@ -1,3 +1,4 @@
+# app.py
 from flask import Flask, Response, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
@@ -5,7 +6,7 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
 from models import User, Camera
-from camera import start_monitoring, camera_queues, get_frame_from_camera
+from camera import start_monitoring, camera_queues, get_frame_from_camera, add_camera_to_queue
 from config import Config
 from db import db
 import cv2
@@ -54,6 +55,16 @@ def create_app():
         except Exception as e:
             return jsonify(error=str(e)), 500
 
+    @app.route('/start_camera_streams', methods=['GET'])
+    @jwt_required()
+    def start_camera_streams():
+        try:
+            for camera in Camera.query.filter_by(active=True).all():
+                add_camera_to_queue(camera.camera_id)
+            return jsonify(message='Started camera streams successfully'), 200
+        except Exception as e:
+            return jsonify(error=str(e)), 500
+
     @app.route('/video_feed/<int:camera_id>', methods=['GET'])
     def video_feed(camera_id):
         if camera_id not in camera_queues:
@@ -61,11 +72,12 @@ def create_app():
         return Response(gen_frames(camera_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
     return app
 
 def gen_frames(camera_id):
     while True:
-        frame = get_frame_from_camera(camera_id)
+        frame = camera_queues[camera_id].get()
         if frame is not None:
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -73,11 +85,6 @@ def gen_frames(camera_id):
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         else:
             break
-
-def start_camera_monitoring():
-    monitor_thread = Thread(target=start_monitoring)
-    monitor_thread.daemon = True
-    monitor_thread.start()
 
 def initialize():
     app = create_app()
@@ -91,7 +98,7 @@ def initialize():
             db.session.add(User(username='yasoob', password=hashed_password, role='Administrator'))
             db.session.commit()
 
-        start_camera_monitoring()
+        start_monitoring(app)
 
     try:
         app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)

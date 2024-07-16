@@ -1,5 +1,3 @@
-// CameraStream.js
-
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -18,6 +16,7 @@ const CameraStream = () => {
                 });
                 setCameras(response.data.cameras);
             } catch (error) {
+                console.error('Failed to fetch cameras:', error);
                 setError('Failed to fetch cameras. Please try again.');
             }
         };
@@ -25,20 +24,23 @@ const CameraStream = () => {
         fetchCameras();
     }, []);
 
-    const renderCameraFeed = (cameraId) => {
+    const renderCameraFeed = (camera) => {
         return (
-            <div key={cameraId}>
-                <h2>Camera {cameraId}</h2>
-                <img src={`http://localhost:5000/video_feed/${cameraId}`} alt={`Camera ${cameraId}`} />
+            <div key={camera.camera_id}>
+                <h2>Camera {camera.camera_id}</h2>
+                <img src={`http://localhost:5000/video_feed/${camera.camera_id}`} alt={`Camera ${camera.camera_id}`} />
             </div>
         );
     };
+
+    console.log('Cameras:', cameras);
+    console.log('Error:', error);
 
     return (
         <div>
             {error && <p>{error}</p>}
             {cameras.length > 0 ? (
-                cameras.map(camera => renderCameraFeed(camera.camera_id))
+                cameras.map(camera => renderCameraFeed(camera))
             ) : (
                 <p>Loading cameras...</p>
             )}
