@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread
 from models import User, Camera
-from camera import start_monitoring, camera_queues, get_frame_from_camera
+from camera import start_monitoring, camera_queues, get_frame_from_camera, get_camera_status, get_latest_frame
 from config import Config
 from db import db
 import cv2
@@ -13,15 +13,21 @@ import cv2
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Configure CORS to allow requests from http://localhost:3000
     CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
+
     db.init_app(app)
     jwt = JWTManager(app)
     logging.basicConfig(level=logging.DEBUG)
+
+    # Register blueprints for user and camera routes
     from routes.user_routes import user_bp
     from routes.camera_routes import camera_bp
     app.register_blueprint(user_bp)
     app.register_blueprint(camera_bp)
 
+    # Protected routes requiring JWT authentication
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
     def admin_dashboard():
@@ -44,16 +50,17 @@ def create_app():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
 
+    # Endpoint to fetch all cameras
     @app.route('/cameras', methods=['GET'])
     @jwt_required()
     def get_cameras():
         try:
             cameras = Camera.query.all()
-            serialized_cameras = [camera.serialize() for camera in cameras]
-            return jsonify(cameras=serialized_cameras), 200
+            return jsonify(cameras=[camera.serialize() for camera in cameras]), 200
         except Exception as e:
             return jsonify(error=str(e)), 500
 
+    # Endpoint for video feed streaming
     @app.route('/video_feed/<int:camera_id>', methods=['GET'])
     def video_feed(camera_id):
         if camera_id not in camera_queues:
@@ -61,11 +68,34 @@ def create_app():
         return Response(gen_frames(camera_id),
                         mimetype='multipart/x-mixed-replace; boundary=frame')
 
+    # Endpoint to check the status of cameras
+    @app.route('/camera_status', methods=['GET'])
+    def camera_status():
+        status = get_camera_status()
+        return jsonify(status=status), 200
+
+    # Endpoint for MJPEG streaming
+    @app.route('/mjpeg_feed/<int:camera_id>', methods=['GET'])
+    def mjpeg_feed(camera_id):
+        return Response(gen_mjpeg_frames(camera_id),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+
     return app
 
 def gen_frames(camera_id):
     while True:
         frame = get_frame_from_camera(camera_id)
+        if frame is not None:
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        else:
+            break
+
+def gen_mjpeg_frames(camera_id):
+    while True:
+        frame = get_latest_frame(camera_id)
         if frame is not None:
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()

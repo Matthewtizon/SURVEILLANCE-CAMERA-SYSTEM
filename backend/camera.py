@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 
 camera_queues = {}
 frame_data = {}
+latest_frames = {}  # Dictionary to store the latest frame for each camera
 thread_lock = Lock()
+capture_threads = {}
 
 def get_frame_from_camera(camera_id):
     with thread_lock:
@@ -22,6 +24,7 @@ def get_frame_from_camera(camera_id):
 def update_frame_data(camera_id, frame):
     with thread_lock:
         frame_data[camera_id] = frame
+        latest_frames[camera_id] = frame  # Store the latest frame
 
 def capture_frames(camera, camera_id, queue):
     try:
@@ -34,12 +37,7 @@ def capture_frames(camera, camera_id, queue):
                 queue.put(frame)
                 update_frame_data(camera_id, frame.copy())
                 logger.info(f"Captured frame for camera {camera_id}")
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-            # Remove the sleep interval to allow continuous frame capturing
-            # time.sleep(0.1)
+            time.sleep(0.1)
     finally:
         camera.release()
         logger.info(f"Camera release completed for camera {camera_id}")
@@ -49,6 +47,8 @@ def capture_frames(camera, camera_id, queue):
         with thread_lock:
             if camera_id in frame_data:
                 del frame_data[camera_id]
+            if camera_id in latest_frames:
+                del latest_frames[camera_id]
 
 def detect_cameras_and_save():
     with app.app_context():
@@ -68,12 +68,11 @@ def detect_cameras_and_save():
                         else:
                             logger.info(f"Camera at port {port} already exists in the database.")
                         
-                        queue = Queue(maxsize=10)
+                        queue = Queue(maxsize=20)
                         camera_queues[camera_id] = queue
 
-                        thread = Thread(target=capture_frames, args=(camera, camera_id, queue))
-                        thread.daemon = True
-                        thread.start()
+                        # Start the capture frames thread for the detected camera
+                        start_capture_thread(camera, camera_id, queue)
 
                         break
                     except Exception as e:
@@ -84,6 +83,12 @@ def detect_cameras_and_save():
                     backend_name = {cv2.CAP_DSHOW: "DSHOW"}.get(backend, backend)
                     logger.warning(f"No camera detected at port {port} using backend {backend_name}.")
                     camera.release()
+
+def start_capture_thread(camera, camera_id, queue):
+    thread = Thread(target=capture_frames, args=(camera, camera_id, queue))
+    thread.daemon = True
+    thread.start()
+    capture_threads[camera_id] = thread
 
 def monitor_cameras(interval=60):
     try:
@@ -102,3 +107,13 @@ def start_monitoring():
     flask_app = create_app()
     with flask_app.app_context():
         monitor_cameras()
+
+def get_camera_status():
+    status = {}
+    for camera_id, thread in capture_threads.items():
+        status[camera_id] = thread.is_alive()
+    return status
+
+def get_latest_frame(camera_id):
+    with thread_lock:
+        return latest_frames.get(camera_id)

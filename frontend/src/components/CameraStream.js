@@ -29,7 +29,7 @@ const CameraStream = () => {
         return (
             <div key={cameraId}>
                 <h2>Camera {cameraId}</h2>
-                <img src={`http://localhost:5000/video_feed/${cameraId}`} alt={`Camera ${cameraId}`} />
+                <img src={`http://localhost:5000/mjpeg_feed/${cameraId}`} alt={`Camera ${cameraId}`} />
             </div>
         );
     };
