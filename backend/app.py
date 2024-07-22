@@ -1,15 +1,16 @@
-# app.py
 from flask import Flask, Response, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
-from threading import Thread
-from models import User, Camera
-from camera import start_monitoring, camera_queues, get_frame_from_camera, add_camera_to_queue
+from threading import Thread, enumerate
+from models import User
+from camera import camera_queues, get_frame_from_camera, start_monitoring
 from config import Config
 from db import db
 import cv2
+
+logging.basicConfig(level=logging.DEBUG)
 
 def create_app():
     app = Flask(__name__)
@@ -19,15 +20,13 @@ def create_app():
     jwt = JWTManager(app)
     logging.basicConfig(level=logging.DEBUG)
     from routes.user_routes import user_bp
-    from routes.camera_routes import camera_bp
     app.register_blueprint(user_bp)
-    app.register_blueprint(camera_bp)
 
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
     def admin_dashboard():
         current_user = get_jwt_identity()
-        if (current_user['role'] != 'Administrator'):
+        if current_user['role'] != 'Administrator':
             return jsonify({'message': 'Unauthorized'}), 403
         return jsonify({'message': 'Welcome to the Admin Dashboard'}), 200
 
@@ -35,7 +34,7 @@ def create_app():
     @jwt_required()
     def security_dashboard():
         current_user = get_jwt_identity()
-        if (current_user['role'] != 'Security Staff'):
+        if current_user['role'] != 'Security Staff':
             return jsonify({'message': 'Unauthorized'}), 403
         return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
 
@@ -48,43 +47,41 @@ def create_app():
     @app.route('/cameras', methods=['GET'])
     @jwt_required()
     def get_cameras():
-        try:
-            cameras = Camera.query.all()
-            serialized_cameras = [camera.serialize() for camera in cameras]
-            return jsonify(cameras=serialized_cameras), 200
-        except Exception as e:
-            return jsonify(error=str(e)), 500
-
-    @app.route('/start_camera_streams', methods=['GET'])
-    @jwt_required()
-    def start_camera_streams():
-        try:
-            for camera in Camera.query.filter_by(active=True).all():
-                add_camera_to_queue(camera.camera_id)
-            return jsonify(message='Started camera streams successfully'), 200
-        except Exception as e:
-            return jsonify(error=str(e)), 500
+        current_user = get_jwt_identity()
+        if current_user['role'] not in ['Administrator', 'Security Staff']:
+            return jsonify({'message': 'Unauthorized'}), 403
+        cameras = [{'camera_id': camera_id} for camera_id in camera_queues.keys()]
+        return jsonify({'cameras': cameras}), 200
 
     @app.route('/video_feed/<int:camera_id>', methods=['GET'])
     def video_feed(camera_id):
         if camera_id not in camera_queues:
             return jsonify({"error": "Camera not found"}), 404
-        return Response(gen_frames(camera_id),
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
-
+        return Response(gen_frames(camera_id), mimetype='multipart/x-mixed-replace; boundary=frame')
 
     return app
 
 def gen_frames(camera_id):
     while True:
-        frame = camera_queues[camera_id].get()
+        frame = get_frame_from_camera(camera_id)
         if frame is not None:
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         else:
+            logging.warning(f"Camera {camera_id} is not streaming any frame.")
             break
+
+def start_camera_monitoring():
+    # Ensure that only one camera monitoring thread is started
+    if not any(t.name == "CameraMonitor" and t.is_alive() for t in enumerate()):
+        monitor_thread = Thread(target=start_monitoring, name="CameraMonitor")
+        monitor_thread.daemon = True
+        monitor_thread.start()
+        logging.info("Started camera monitoring.")
+    else:
+        logging.info("Camera monitoring is already running.")
 
 def initialize():
     app = create_app()
@@ -98,14 +95,14 @@ def initialize():
             db.session.add(User(username='yasoob', password=hashed_password, role='Administrator'))
             db.session.commit()
 
-        start_monitoring(app)
+    start_camera_monitoring()
 
     try:
         app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
     except KeyboardInterrupt:
-        print("Keyboard interrupt received. Stopping Flask application.")
+        logging.info("Keyboard interrupt received. Stopping Flask application.")
     except Exception as e:
-        print(f"Unexpected error occurred: {e}")
+        logging.error(f"Unexpected error occurred: {e}")
 
 if __name__ == '__main__':
     initialize()
