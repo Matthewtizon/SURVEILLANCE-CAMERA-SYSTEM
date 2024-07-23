@@ -1,9 +1,10 @@
 // src/components/AdminDashboard.js
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
 import Register from './Register';
+import Sidebar from './SideBar'; // Import Sidebar
 import './Dashboard.css';
 
 const AdminDashboard = () => {
@@ -11,6 +12,7 @@ const AdminDashboard = () => {
     const [username, setUsername] = useState('');
     const [users, setUsers] = useState([]);
     const [showRegisterForm, setShowRegisterForm] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true); // State to manage sidebar visibility
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -62,48 +64,54 @@ const AdminDashboard = () => {
         setShowRegisterForm(!showRegisterForm);
     };
 
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    };
+
     if (loading) {
         return <div>Loading...</div>;
     }
 
     return (
         <div className="dashboard-container">
-            <Header dashboardType="Administrator" username={username} />
-            <main className="dashboard-main">
-                <button onClick={toggleRegisterForm} className="toggle-button">
-                    {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
-                </button>
-                {showRegisterForm && <Register />}
-                <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
-                <h2>User List</h2>
-                <table className="user-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Role</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {users.map(user => (
-                            <tr key={user.user_id}>
-                                <td>{user.user_id}</td>
-                                <td>{user.username}</td>
-                                <td>{user.role}</td>
-                                <td>
-                                    <button
-                                        onClick={() => deleteUser(user.user_id)}
-                                        className="delete-button"
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} /> {/* Add Sidebar */}
+            <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+                <Header dashboardType="Administrator" username={username} />
+                <main className="dashboard-main">
+                    <button onClick={toggleRegisterForm} className="toggle-button">
+                        {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
+                    </button>
+                    {showRegisterForm && <Register />}
+                    <h2>User List</h2>
+                    <table className="user-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </main>
+                        </thead>
+                        <tbody>
+                            {users.map(user => (
+                                <tr key={user.user_id}>
+                                    <td>{user.user_id}</td>
+                                    <td>{user.username}</td>
+                                    <td>{user.role}</td>
+                                    <td>
+                                        <button
+                                            onClick={() => deleteUser(user.user_id)}
+                                            className="delete-button"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </main>
+            </div>
         </div>
     );
 };

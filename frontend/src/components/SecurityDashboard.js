@@ -1,13 +1,15 @@
 // src/components/SecurityDashboard.js
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState, Link } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import Sidebar from './SideBar'; // Import Sidebar
 import './Dashboard.css';
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [username, setUsername] = useState('');
+    const [sidebarOpen, setSidebarOpen] = useState(true); // State to manage sidebar visibility
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -35,16 +37,23 @@ const SecurityDashboard = () => {
         fetchUserData();
     }, [navigate]);
 
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    };
+
     if (loading) {
         return <div>Loading...</div>;
     }
 
     return (
         <div className="dashboard-container">
-            <Header dashboardType="Security Staff" username={username} />
-            <main className="dashboard-main">
-                <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
-            </main>
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} /> {/* Add Sidebar */}
+            <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+                <Header dashboardType="Security Staff" username={username} />
+                <main className="dashboard-main">
+                    <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
+                </main>
+            </div>
         </div>
     );
 };

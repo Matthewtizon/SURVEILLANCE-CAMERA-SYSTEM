@@ -1,61 +1,37 @@
-/* src/components/Dashboard.css */
 .dashboard-container {
-  font-family: Arial, sans-serif;
+  display: flex;
 }
 
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background-color: #282c34;
-  color: white;
+
+.main-content {
+  margin-left: 250px; /* Width of sidebar */
+  padding: 20px;
+  flex-grow: 1;
+  transition: margin-left 0.3s ease;
+}
+
+.main-content.collapsed {
+  margin-left: 0; /* No space for sidebar */
 }
 
 .dashboard-main {
   padding: 20px;
 }
 
-.toggle-button {
-  margin: 20px 0;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.toggle-button:hover {
-  background-color: #0056b3;
+.toggle-button, .delete-button {
+  margin: 5px;
 }
 
 .user-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
 }
 
-.user-table th,
-.user-table td {
+.user-table th, .user-table td {
   border: 1px solid #ddd;
   padding: 8px;
 }
 
 .user-table th {
-  background-color: #f2f2f2;
-  text-align: left;
-}
-
-.delete-button {
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.delete-button:hover {
-  background-color: #c82333;
+  background-color: #f4f4f4;
 }
