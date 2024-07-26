@@ -5,10 +5,9 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
 from threading import Thread, enumerate
 from models import User
-from camera import camera_queues, get_frame_from_camera, start_monitoring
+from camera import start_monitoring
 from config import Config
 from db import db
-import cv2
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,8 +18,12 @@ def create_app():
     db.init_app(app)
     jwt = JWTManager(app)
     logging.basicConfig(level=logging.DEBUG)
+    
     from routes.user_routes import user_bp
     app.register_blueprint(user_bp)
+    
+    from routes.camera_routes import camera_bp
+    app.register_blueprint(camera_bp)
 
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
@@ -44,34 +47,7 @@ def create_app():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
 
-    @app.route('/cameras', methods=['GET'])
-    @jwt_required()
-    def get_cameras():
-        current_user = get_jwt_identity()
-        if current_user['role'] not in ['Administrator', 'Security Staff']:
-            return jsonify({'message': 'Unauthorized'}), 403
-        cameras = [{'camera_id': camera_id} for camera_id in camera_queues.keys()]
-        return jsonify({'cameras': cameras}), 200
-
-    @app.route('/video_feed/<int:camera_id>', methods=['GET'])
-    def video_feed(camera_id):
-        if camera_id not in camera_queues:
-            return jsonify({"error": "Camera not found"}), 404
-        return Response(gen_frames(camera_id), mimetype='multipart/x-mixed-replace; boundary=frame')
-
     return app
-
-def gen_frames(camera_id):
-    while True:
-        frame = get_frame_from_camera(camera_id)
-        if frame is not None:
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        else:
-            logging.warning(f"Camera {camera_id} is not streaming any frame.")
-            break
 
 def start_camera_monitoring():
     # Ensure that only one camera monitoring thread is started

@@ -7,16 +7,3 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     role = db.Column(db.String(50), nullable=False)
 
-
-class Camera(db.Model):
-    camera_id = db.Column(db.Integer, primary_key=True)
-    location = db.Column(db.String(255), nullable=False)
-    active = db.Column(db.Boolean, default=True)
-
-    def serialize(self):
-        return {
-            'camera_id': self.camera_id,
-            'location': self.location,
-            'active': self.active
-            # Add more fields if needed
-        }

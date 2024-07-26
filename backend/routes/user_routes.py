@@ -30,7 +30,8 @@ def register():
 @jwt_required()
 def get_users():
     current_user = get_jwt_identity()
-    if current_user['role'] != 'Administrator':
+    # Allow both Administrators and Security Staff to view users
+    if current_user['role'] not in ['Administrator', 'Security Staff']:
         return jsonify({'message': 'Unauthorized'}), 403
     
     users = User.query.all()
@@ -42,7 +43,7 @@ def get_users():
 def delete_user(user_id):
     current_user = get_jwt_identity()
     if current_user['role'] != 'Administrator':
-        return jsonify({'message': 'Unauthorized'}), 403
+        return jsonify({'message': 'Only administrators can delete users'}), 403
 
     user = User.query.get(user_id)
     if not user:

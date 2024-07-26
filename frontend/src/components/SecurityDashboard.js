@@ -1,13 +1,16 @@
 // src/components/SecurityDashboard.js
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
+import Sidebar from './SideBar'; // Correctly import Sidebar
 import './Dashboard.css';
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [username, setUsername] = useState('');
+    const [role, setRole] = useState('');
+    const [sidebarOpen, setSidebarOpen] = useState(true); // State to manage sidebar visibility
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -24,6 +27,7 @@ const SecurityDashboard = () => {
                 });
                 const user = response.data.logged_in_as;
                 setUsername(user.username);
+                setRole(user.role);
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -35,16 +39,23 @@ const SecurityDashboard = () => {
         fetchUserData();
     }, [navigate]);
 
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    };
+
     if (loading) {
         return <div>Loading...</div>;
     }
 
     return (
         <div className="dashboard-container">
-            <Header dashboardType="Security Staff" username={username} />
-            <main className="dashboard-main">
-                <Link to="/camera-stream" className="camera-stream-link">View Camera Streams</Link>
-            </main>
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} /> {/* Add Sidebar */}
+            <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+                <Header dashboardType="Security Staff" username={username} role={role} />
+                <main className="dashboard-main">
+                    <h2> Welcome to the Security Staff Dashboard {username}</h2>
+                </main>
+            </div>
         </div>
     );
 };
