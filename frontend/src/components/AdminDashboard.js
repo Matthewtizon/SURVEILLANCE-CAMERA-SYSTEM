@@ -3,16 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import Register from './Register';
-import Sidebar from './SideBar'; // Import Sidebar
+import Sidebar from './SideBar';
 import './Dashboard.css';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [username, setUsername] = useState('');
-    const [users, setUsers] = useState([]);
-    const [showRegisterForm, setShowRegisterForm] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(true); // State to manage sidebar visibility
+    const [role, setRole] = useState('');
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -27,13 +25,9 @@ const AdminDashboard = () => {
                 const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setUsername(response.data.logged_in_as.username); // Ensure this is correct
+                setUsername(response.data.logged_in_as.username);
+                setRole(response.data.logged_in_as.role);
                 setLoading(false);
-
-                const userResponse = await axios.get('http://localhost:5000/users', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setUsers(userResponse.data);
             } catch (error) {
                 console.error('Error fetching user data:', error);
                 localStorage.removeItem('token');
@@ -43,26 +37,6 @@ const AdminDashboard = () => {
 
         fetchUserData();
     }, [navigate]);
-
-    const deleteUser = async (userId) => {
-        const token = localStorage.getItem('token');
-
-        try {
-            const response = await axios.delete(`http://localhost:5000/users/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (response.status === 200) {
-                setUsers(users.filter(user => user.user_id !== userId));
-            }
-        } catch (error) {
-            console.error('Error deleting user:', error);
-        }
-    };
-
-    const toggleRegisterForm = () => {
-        setShowRegisterForm(!showRegisterForm);
-    };
 
     const toggleSidebar = () => {
         setSidebarOpen(!sidebarOpen);
@@ -74,42 +48,11 @@ const AdminDashboard = () => {
 
     return (
         <div className="dashboard-container">
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} /> {/* Add Sidebar */}
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
             <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
-                <Header dashboardType="Administrator" username={username} />
+                <Header dashboardType="Administrator" username={username} role={role} />
                 <main className="dashboard-main">
-                    <button onClick={toggleRegisterForm} className="toggle-button">
-                        {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
-                    </button>
-                    {showRegisterForm && <Register />}
-                    <h2>User List</h2>
-                    <table className="user-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map(user => (
-                                <tr key={user.user_id}>
-                                    <td>{user.user_id}</td>
-                                    <td>{user.username}</td>
-                                    <td>{user.role}</td>
-                                    <td>
-                                        <button
-                                            onClick={() => deleteUser(user.user_id)}
-                                            className="delete-button"
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <h2>Welcome to the Admin Dashboard {username}</h2>
                 </main>
             </div>
         </div>

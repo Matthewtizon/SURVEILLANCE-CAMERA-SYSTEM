@@ -7,6 +7,7 @@ import Register from './components/Register';
 import AdminDashboard from './components/AdminDashboard';
 import SecurityDashboard from './components/SecurityDashboard';
 import CameraStream from './components/CameraStream';
+import UserManagement from './components/UserManagement';
 
 const App = () => {
     const [role, setRole] = useState(null);
@@ -41,6 +42,7 @@ const App = () => {
             <Route path="/admin-dashboard" element={role === 'Administrator' ? <AdminDashboard /> : <Navigate to="/login" />} />
             <Route path="/security-dashboard" element={role === 'Security Staff' ? <SecurityDashboard /> : <Navigate to="/login" />} />
             <Route path="/camera-stream" element={role ? <CameraStream /> : <Navigate to="/login" />} />
+            <Route path="/user-management" element={role ? <UserManagement /> : <Navigate to="/login" />} />
             <Route path="/" element={<Navigate to={role ? (role === 'Administrator' ? '/admin-dashboard' : '/security-dashboard') : '/login'} />} />
         </Routes>
     );

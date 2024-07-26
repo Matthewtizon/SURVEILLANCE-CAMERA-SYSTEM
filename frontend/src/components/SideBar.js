@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './Sidebar.css'; // Ensure this CSS file includes the necessary styles
 
-const Sidebar = ({ isOpen, toggleSidebar }) => {
+const Sidebar = ({ isOpen, toggleSidebar, role }) => {
   return (
     <div className="sidebar-container">
       <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
@@ -14,10 +14,17 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           <div className="sidebar-content">
             <h2>Dashboard Menu</h2>
             <ul>
-              <li><Link to="/admin/dashboard">Dashboard</Link></li>
-              <li><Link to="/admin/users">Users</Link></li>
-              <li><Link to="/admin/settings">Settings</Link></li>
-              <li><Link to="/camera-stream">View Camera Streams</Link></li>
+              <li>
+                <Link to={`/${role === 'Administrator' ? 'admin-dashboard' : 'security-dashboard'}`}>
+                  {role === 'Administrator' ? 'Admin Dashboard' : 'Security Dashboard'}
+                </Link>
+              </li>
+              <li>
+                <Link to="/user-management">User Management</Link>
+              </li>
+              <li>
+                <Link to="/camera-stream">View Camera Streams</Link>
+              </li>
             </ul>
           </div>
         )}
