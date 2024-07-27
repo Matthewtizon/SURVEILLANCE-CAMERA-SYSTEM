@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Box, Button, Container, TextField, Typography } from '@mui/material';
 
-const Register = () => {
+const Register = ({ refreshUserData }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -22,10 +22,12 @@ const Register = () => {
                 }
             });
             setMessage(response.data.message);
-            window.location.reload(); // Reload the page after successful registration
+            refreshUserData(); // Refresh the user data
+            setUsername(''); // Clear the form fields
+            setPassword('');
         } catch (error) {
-            console.error('Error registering user', error);
-            setMessage('Error registering user');
+            console.error('Error registering user: The user is existing', error);
+            setMessage('Error registering user: The user is existing');
         }
     };
 

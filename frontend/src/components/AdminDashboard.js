@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Box, CircularProgress, Container, Typography } from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
+import './Loading.css';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -43,7 +44,11 @@ const AdminDashboard = () => {
     };
 
     if (loading) {
-        return <CircularProgress />;
+        return (
+            <Box className="loading-container">
+                <CircularProgress />
+            </Box>
+        );
     }
 
     return (

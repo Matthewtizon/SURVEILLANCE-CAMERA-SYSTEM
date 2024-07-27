@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Box, CircularProgress, Container, Typography } from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
+import './Loading.css'; // Import the CSS for consistent loading spinner styling
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -43,17 +45,25 @@ const SecurityDashboard = () => {
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return (
+            <Box className="loading-container">
+                <CircularProgress />
+            </Box>
+        );
     }
 
     return (
-        <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+        <Box display="flex">
             <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
-            <Header dashboardType="Security Staff" username={username} role={role} />
-            <main className="dashboard-main">
-                <h2> Welcome to the Security Staff Dashboard {username}</h2>
-            </main>
-        </div>
+            <Box className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`} flexGrow={1}>
+                <Header dashboardType="Security Staff" username={username} role={role} />
+                <Container>
+                    <Typography variant="h4" gutterBottom>
+                        Welcome to the Security Staff Dashboard {username}
+                    </Typography>
+                </Container>
+            </Box>
+        </Box>
     );
 };
 

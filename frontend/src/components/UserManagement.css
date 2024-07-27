@@ -1,9 +1,44 @@
 /* src/components/UserManagement.css */
 
-/* Ensure positioning for the Register button */
-.register-button {
-  position: fixed;
-  bottom: 20px; /* Distance from the bottom */
-  right: 20px; /* Distance from the right */
-  z-index: 10; /* Make sure it’s above other content */
+
+/* Modal styles */
+.modal-box {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  background-color: white;
+  box-shadow: 24px;
+  padding: 16px;
+}
+
+/* Register button styles */
+.toggle-button {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+}
+
+
+
+
+
+.MuiSnackbar-root {
+  top: 50px; /* Adjust to your preference */
+}
+
+@keyframes slideIn {
+  from {
+      transform: translateY(-100%);
+      opacity: 0;
+  }
+  to {
+      transform: translateY(0);
+      opacity: 1;
+  }
+}
+
+.MuiSnackbar-root .MuiPaper-root {
+  animation: slideIn 0.3s ease-out;
 }
