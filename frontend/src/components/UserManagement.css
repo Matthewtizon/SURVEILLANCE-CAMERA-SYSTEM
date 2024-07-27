@@ -1,34 +1,9 @@
 /* src/components/UserManagement.css */
-.user-management-container {
-  padding: 20px;
-}
 
-.toggle-button {
-  margin-bottom: 20px;
-}
-
-.user-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.user-table th, .user-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-.user-table th {
-  background-color: #f2f2f2;
-}
-
-.delete-button {
-  background-color: red;
-  color: white;
-  border: none;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.delete-button:hover {
-  background-color: darkred;
+/* Ensure positioning for the Register button */
+.register-button {
+  position: fixed;
+  bottom: 20px; /* Distance from the bottom */
+  right: 20px; /* Distance from the right */
+  z-index: 10; /* Make sure it’s above other content */
 }

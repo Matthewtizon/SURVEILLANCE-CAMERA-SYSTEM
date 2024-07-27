@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Box, CircularProgress, Container, Typography } from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
-import './Dashboard.css';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -43,19 +43,21 @@ const AdminDashboard = () => {
     };
 
     if (loading) {
-        return <div>Loading...</div>;
+        return <CircularProgress />;
     }
 
     return (
-        <div className="dashboard-container">
+        <Box display="flex">
             <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
-            <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+            <Box className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`} flexGrow={1}>
                 <Header dashboardType="Administrator" username={username} role={role} />
-                <main className="dashboard-main">
-                    <h2>Welcome to the Admin Dashboard {username}</h2>
-                </main>
-            </div>
-        </div>
+                <Container>
+                    <Typography variant="h4" gutterBottom>
+                        Welcome to the Admin Dashboard {username}
+                    </Typography>
+                </Container>
+            </Box>
+        </Box>
     );
 };
 

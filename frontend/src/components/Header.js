@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Header.css';
+import { AppBar, Box, Button, Toolbar, Typography } from '@mui/material';
 
 const Header = ({ dashboardType, username, role }) => {
     const navigate = useNavigate();
@@ -11,13 +11,21 @@ const Header = ({ dashboardType, username, role }) => {
     };
 
     return (
-        <header className="dashboard-header">
-            <h1>{dashboardType} Dashboard</h1>
-            <div>
-                <span>Logged in as: {username} ({role})</span>
-                <button onClick={handleLogout} className="logout-button">Logout</button>
-            </div>
-        </header>
+        <AppBar position="static">
+            <Toolbar>
+                <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                    {dashboardType} Dashboard
+                </Typography>
+                <Box display="flex" alignItems="center">
+                    <Typography variant="body1" mr={2}>
+                        Logged in as: {username} ({role})
+                    </Typography>
+                    <Button color="inherit" onClick={handleLogout}>
+                        Logout
+                    </Button>
+                </Box>
+            </Toolbar>
+        </AppBar>
     );
 };
 

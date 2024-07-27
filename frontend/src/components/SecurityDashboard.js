@@ -3,14 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Header from './Header';
-import Sidebar from './SideBar'; // Correctly import Sidebar
-import './Dashboard.css';
+import Sidebar from './SideBar';
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
-    const [sidebarOpen, setSidebarOpen] = useState(true); // State to manage sidebar visibility
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -20,7 +19,7 @@ const SecurityDashboard = () => {
                 navigate('/login');
                 return;
             }
-            
+
             try {
                 const response = await axios.get('http://localhost:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
@@ -48,14 +47,12 @@ const SecurityDashboard = () => {
     }
 
     return (
-        <div className="dashboard-container">
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} /> {/* Add Sidebar */}
-            <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
-                <Header dashboardType="Security Staff" username={username} role={role} />
-                <main className="dashboard-main">
-                    <h2> Welcome to the Security Staff Dashboard {username}</h2>
-                </main>
-            </div>
+        <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
+            <Header dashboardType="Security Staff" username={username} role={role} />
+            <main className="dashboard-main">
+                <h2> Welcome to the Security Staff Dashboard {username}</h2>
+            </main>
         </div>
     );
 };

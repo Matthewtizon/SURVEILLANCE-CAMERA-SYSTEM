@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Box, Button, CircularProgress, Container, Typography } from '@mui/material';
 import Header from './Header';
-import Sidebar from './SideBar'; // Import Sidebar
-import './Header.css';
+import Sidebar from './SideBar';
 
 const CameraStream = () => {
     const [cameras, setCameras] = useState([]);
@@ -12,7 +12,7 @@ const CameraStream = () => {
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
     const [dashboardType, setDashboardType] = useState('');
-    const [sidebarOpen, setSidebarOpen] = useState(true); // State for sidebar visibility
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -25,7 +25,7 @@ const CameraStream = () => {
                     },
                 });
                 setCameras(response.data.cameras);
-                
+
                 const userResponse = await axios.get('http://localhost:5000/protected', {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -57,31 +57,30 @@ const CameraStream = () => {
     };
 
     const renderCameraFeed = (camera) => (
-        <div key={camera.camera_id}>
-            <h2>Camera {camera.camera_id}</h2>
+        <Box key={camera.camera_id} my={2}>
+            <Typography variant="h6">Camera {camera.camera_id}</Typography>
             <img src={`http://localhost:5000/video_feed/${camera.camera_id}`} alt={`Camera ${camera.camera_id}`} />
-        </div>
+        </Box>
     );
 
-    console.log('Cameras:', cameras);
-    console.log('Error:', error);
-
     return (
-        <div>
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} /> {/* Add Sidebar */}
-            <div className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+        <Box display="flex">
+            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
+            <Box className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`} flexGrow={1}>
                 <Header dashboardType="Camera Management" username={username} role={role} />
-                <button onClick={handleBackToDashboard} className="back-button">
-                    Back to Dashboard
-                </button>
-                {error && <p>{error}</p>}
-                {cameras.length > 0 ? (
-                    cameras.map(camera => renderCameraFeed(camera))
-                ) : (
-                    <p>Loading cameras...</p>
-                )}
-            </div>
-        </div>
+                <Container>
+                    <Button variant="contained" color="primary" onClick={handleBackToDashboard} sx={{ my: 2 }}>
+                        Back to Dashboard
+                    </Button>
+                    {error && <Typography color="error">{error}</Typography>}
+                    {cameras.length > 0 ? (
+                        cameras.map(camera => renderCameraFeed(camera))
+                    ) : (
+                        <CircularProgress />
+                    )}
+                </Container>
+            </Box>
+        </Box>
     );
 };
 

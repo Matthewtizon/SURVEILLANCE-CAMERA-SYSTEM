@@ -1,6 +1,7 @@
+// src/components/Register.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import './Register.css'; // Import custom CSS
+import { Box, Button, Container, TextField, Typography } from '@mui/material';
 
 const Register = () => {
     const [username, setUsername] = useState('');
@@ -29,35 +30,48 @@ const Register = () => {
     };
 
     return (
-        <div className="register-container">
-            <h2>Register a New Security Staff</h2>
-            {message && <p className="message">{message}</p>}
-            <form onSubmit={handleSubmit} className="register-form">
-                <div className="form-group">
-                    <label htmlFor="username">Username</label>
-                    <input
-                        type="text"
+        <Container maxWidth="xs">
+            <Box mt={8} display="flex" flexDirection="column" alignItems="center">
+                <Typography variant="h4" gutterBottom>
+                    Register
+                </Typography>
+                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+                    <TextField
+                        margin="normal"
+                        required
+                        fullWidth
                         id="username"
+                        label="Username"
+                        name="username"
+                        autoComplete="username"
+                        autoFocus
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter username"
-                        required
                     />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="password">Password</label>
-                    <input
+                    <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="password"
+                        label="Password"
                         type="password"
                         id="password"
+                        autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
-                        required
                     />
-                </div>
-                <button type="submit" className="register-button">Register</button>
-            </form>
-        </div>
+                    <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        sx={{ mt: 3, mb: 2 }}
+                    >
+                        Register
+                    </Button>
+                    {message && <Typography color={message.includes('failed') ? 'error' : 'primary'}>{message}</Typography>}
+                </Box>
+            </Box>
+        </Container>
     );
 };
 
