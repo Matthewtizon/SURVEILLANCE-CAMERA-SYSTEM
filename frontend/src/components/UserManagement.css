@@ -1,13 +1,15 @@
 /* src/components/UserManagement.css */
-
+h2{
+  padding-left: 40px;
+}
 
 .toggle-button {
   margin-bottom: 20px;
 }
 
 .user-table {
-  width: 100%;
-  border-collapse: collapse;
+  width: 95%;
+  padding-left: 40px;
 }
 
 .user-table th, .user-table td {

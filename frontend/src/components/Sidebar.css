@@ -1,34 +1,67 @@
 /* Sidebar.css */
 .sidebar-container {
-  position: relative;
+  display: flex;
 }
 
 .sidebar {
-  width: 250px;
   height: 100vh;
   background-color: #333;
   color: white;
   position: fixed;
   left: 0;
   top: 0;
-  padding: 20px;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  transform: translateX(0);
-  opacity: 1;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1000; /* Ensure the sidebar is above other content */
 }
 
 .sidebar.closed {
-  transform: translateX(-100%);
-  opacity: 0;
+  width: 80px;
 }
 
-.sidebar-content {
+.sidebar.open {
+  width: 250px;
+}
+
+.sidebar-header {
+  width: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.sidebar-logo {
+  width: 50px;
+  height: 50px;
 }
 
 .sidebar-toggle {
-  margin-bottom: 20px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.sidebar-content {
+  margin-top: 20px;
+  width: 100%;
+  text-align: left;
+  padding-left: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-content.visible {
+  opacity: 1;
+}
+
+.sidebar-content.hidden {
+  opacity: 0;
 }
 
 .sidebar h2 {
@@ -61,11 +94,25 @@
   background-color: #333;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 20px 30px;
   cursor: pointer;
-  z-index: 1000; /* Ensure it is on top of other content */
+  z-index: 100; /* Ensure it is on top of other content */
 }
 
 .sidebar-show-button:hover {
   background-color: #444;
+}
+
+.main-content {
+  margin-left: 100px; /* Default margin for when sidebar is closed */
+  transition: margin-left 0.5s ease;
+  flex: 1; /* Allows main-content to take up the remaining space */
+}
+
+.sidebar.open ~ .main-content {
+  margin-left: 250px; /* Margin for when sidebar is open */
+}
+
+.main-content-content {
+  padding: 20px;
 }

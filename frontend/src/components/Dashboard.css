@@ -4,33 +4,16 @@
 
 
 .main-content {
-  margin-left: 250px; /* Width of sidebar */
+  margin-left: 250px;
   flex-grow: 1;
-  transition: margin-left 0.3s ease;
+  transition: margin-left 0.2s ease;
 }
 
 .main-content.collapsed {
   margin-left: 0; /* No space for sidebar */
+  padding-left: 80px;
 }
 
 .dashboard-main {
   padding: 20px;
-}
-
-.toggle-button, .delete-button {
-  margin: 5px;
-}
-
-.user-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.user-table th, .user-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-}
-
-.user-table th {
-  background-color: #f4f4f4;
 }
