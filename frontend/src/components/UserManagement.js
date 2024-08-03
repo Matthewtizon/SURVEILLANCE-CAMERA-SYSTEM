@@ -2,12 +2,30 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Container, Button, Table, TableBody, TableCell, TableHead, TableRow, Typography, Box, Modal, CircularProgress, Snackbar, Slide } from '@mui/material';
+import {
+    Container,
+    Button,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    Typography,
+    Box,
+    Modal,
+    CircularProgress,
+    Snackbar,
+    Slide,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle
+} from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
 import Register from './Register';
 import './UserManagement.css'; // Import the CSS file
-import './Loading.css';
 
 const UserManagement = () => {
     const [loading, setLoading] = useState(true);
@@ -17,6 +35,8 @@ const UserManagement = () => {
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
     const navigate = useNavigate();
 
@@ -51,38 +71,36 @@ const UserManagement = () => {
     }, [fetchUserData]);
 
     const deleteUser = async () => {
-        if (!userToDelete) return;
-        
         const token = localStorage.getItem('token');
 
         try {
-            const response = await axios.delete(`http://localhost:5000/users/${userToDelete}`, {
+            const response = await axios.delete(`http://localhost:5000/users/${userToDelete.user_id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (response.status === 200) {
-                setUsers(users.filter(user => user.user_id !== userToDelete));
-                setSnackbarOpen(false); // Close snackbar if deletion is successful
-                setUserToDelete(null); // Clear user to delete
+                setUsers(users.filter(user => user.user_id !== userToDelete.user_id));
+                setSnackbarMessage('User deleted successfully.');
+                setSnackbarOpen(true);
+                setDeleteDialogOpen(false);
+                setUserToDelete(null);
             }
         } catch (error) {
             console.error('Error deleting user:', error);
-            setSnackbarOpen(false); // Close snackbar on error as well
-            setUserToDelete(null); // Clear user to delete
         }
     };
 
-    const handleDeleteClick = (userId) => {
+    const handleDeleteClick = (user) => {
         if (role === 'Security Staff') {
-            setUserToDelete(userId);
+            setSnackbarMessage('Security Staff cannot delete users. This action will be aborted.');
             setSnackbarOpen(true);
             // Automatically close the snackbar after 2 seconds
             setTimeout(() => {
                 setSnackbarOpen(false);
-                setUserToDelete(null);
             }, 2000);
         } else {
-            deleteUser(userId);
+            setUserToDelete(user);
+            setDeleteDialogOpen(true);
         }
     };
 
@@ -96,6 +114,20 @@ const UserManagement = () => {
 
     const handleSnackbarClose = () => {
         setSnackbarOpen(false);
+    };
+
+    const showSnackbarMessage = (message) => {
+        setSnackbarMessage(message);
+        setSnackbarOpen(true);
+    };
+
+    const handleRegisterSuccess = () => {
+        setShowRegisterForm(false);
+    };
+
+    const handleDeleteDialogClose = () => {
+        setDeleteDialogOpen(false);
+        setUserToDelete(null);
     };
 
     return (
@@ -130,7 +162,7 @@ const UserManagement = () => {
                                                 <Button
                                                     variant="contained"
                                                     color="secondary"
-                                                    onClick={() => handleDeleteClick(user.user_id)}
+                                                    onClick={() => handleDeleteClick(user)}
                                                 >
                                                     Delete
                                                 </Button>
@@ -155,17 +187,43 @@ const UserManagement = () => {
                                 aria-describedby="register-modal-description"
                             >
                                 <Box className="modal-box">
-                                    <Register refreshUserData={fetchUserData} />
+                                    <Register
+                                        refreshUserData={fetchUserData}
+                                        showSnackbarMessage={showSnackbarMessage}
+                                        onSuccess={handleRegisterSuccess}
+                                    />
                                 </Box>
                             </Modal>
+
+                            <Dialog
+                                open={deleteDialogOpen}
+                                onClose={handleDeleteDialogClose}
+                                aria-labelledby="delete-dialog-title"
+                                aria-describedby="delete-dialog-description"
+                            >
+                                <DialogTitle id="delete-dialog-title">Confirm Deletion</DialogTitle>
+                                <DialogContent>
+                                    <DialogContentText id="delete-dialog-description">
+                                        Are you sure you want to delete the user "{userToDelete?.username}"?
+                                    </DialogContentText>
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={handleDeleteDialogClose} color="primary">
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={deleteUser} color="secondary">
+                                        Delete
+                                    </Button>
+                                </DialogActions>
+                            </Dialog>
 
                             <Snackbar
                                 open={snackbarOpen}
                                 autoHideDuration={2000}
                                 onClose={handleSnackbarClose}
-                                message="Security Staff cannot delete users. This action will be aborted."
+                                message={snackbarMessage}
                                 TransitionComponent={SlideTransition}
-                                sx={{ top: 50 }} // Position the Snackbar 20px from the top
+                                classes={{ root: 'snackbar-top-center' }}
                             />
                         </>
                     )}

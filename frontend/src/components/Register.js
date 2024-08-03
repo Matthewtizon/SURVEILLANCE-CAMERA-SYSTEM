@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Box, Button, Container, TextField, Typography } from '@mui/material';
 
-const Register = ({ refreshUserData }) => {
+const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -22,12 +22,16 @@ const Register = ({ refreshUserData }) => {
                 }
             });
             setMessage(response.data.message);
+            showSnackbarMessage(response.data.message); // Show success message
             refreshUserData(); // Refresh the user data
             setUsername(''); // Clear the form fields
             setPassword('');
+            onSuccess(); // Hide the register form on success
         } catch (error) {
-            console.error('Error registering user: The user is existing', error);
-            setMessage('Error registering user: The user is existing');
+            console.error('Error registering user:', error);
+            const errorMessage = 'Error registering user: The user is existing';
+            setMessage(errorMessage);
+            showSnackbarMessage(errorMessage); // Show error message
         }
     };
 
@@ -70,7 +74,7 @@ const Register = ({ refreshUserData }) => {
                     >
                         Register
                     </Button>
-                    {message && <Typography color={message.includes('failed') ? 'error' : 'primary'}>{message}</Typography>}
+                    {message && <Typography color={message.includes('Error') ? 'error' : 'primary'}>{message}</Typography>}
                 </Box>
             </Box>
         </Container>
