@@ -22,19 +22,25 @@ const Login = ({ setRole }) => {
                 },
                 withCredentials: true
             });
+            
             const { access_token, user_info } = response.data;
 
-            localStorage.setItem('token', access_token);
-
-            const role = user_info ? user_info.role : null;
-            setRole(role);
-
-            if (role === 'Administrator') {
-                navigate('/admin-dashboard');
-            } else if (role === 'Security Staff') {
-                navigate('/security-dashboard');
-            } else {
+            if (!user_info || !user_info.role) {
                 setError('Role not found in response data');
+                return;
+            }
+
+            localStorage.setItem('token', access_token);
+            setRole(user_info.role);
+
+            if (user_info.role === 'Administrator') {
+                navigate('/admin-dashboard');
+            } else if (user_info.role === 'Security Staff') {
+                navigate('/security-dashboard');
+            } else if (user_info.role === 'Assistant Administrator') {
+                navigate('/admin-dashboard'); // Adjust the route based on your needs
+            } else {
+                setError('Unknown role');
             }
         } catch (err) {
             console.error('Login Error:', err);

@@ -1,11 +1,12 @@
 // src/components/Register.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import { Box, Button, Container, TextField, Typography } from '@mui/material';
+import { Box, Button, Container, TextField, Typography, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
 
 const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState('Security Staff');
     const [message, setMessage] = useState('');
 
     const handleSubmit = async (e) => {
@@ -15,7 +16,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
             const response = await axios.post('http://localhost:5000/register', {
                 username,
                 password,
-                role: 'Security Staff', // Directly set the role to 'Security Staff'
+                role,
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -26,10 +27,11 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
             refreshUserData(); // Refresh the user data
             setUsername(''); // Clear the form fields
             setPassword('');
+            setRole('Security Staff'); // Reset role to default
             onSuccess(); // Hide the register form on success
         } catch (error) {
             console.error('Error registering user:', error);
-            const errorMessage = 'Error registering user: The user is existing';
+            const errorMessage = 'Error registering user: The user already exists';
             setMessage(errorMessage);
             showSnackbarMessage(errorMessage); // Show error message
         }
@@ -66,6 +68,20 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
+                    <FormControl fullWidth margin="normal">
+                        <InputLabel id="role-label">Role</InputLabel>
+                        <Select
+                            labelId="role-label"
+                            id="role"
+                            value={role}
+                            label="Role"
+                            onChange={(e) => setRole(e.target.value)}
+                        >
+                            <MenuItem value="Security Staff">Security Staff</MenuItem>
+                            <MenuItem value="Assistant Administrator">Assistant Administrator</MenuItem>
+
+                        </Select>
+                    </FormControl>
                     <Button
                         type="submit"
                         fullWidth

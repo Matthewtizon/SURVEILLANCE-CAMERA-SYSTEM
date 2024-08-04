@@ -11,7 +11,7 @@ camera_bp = Blueprint('camera_bp', __name__)
 @jwt_required()
 def get_cameras():
     current_user = get_jwt_identity()
-    if current_user['role'] not in ['Administrator', 'Security Staff']:
+    if current_user['role'] not in ['Administrator', 'Assistant Administrator', 'Security Staff']:
         return jsonify({'message': 'Unauthorized'}), 403
     cameras = [{'camera_id': camera_id} for camera_id in camera_queues.keys()]
     return jsonify({'cameras': cameras}), 200

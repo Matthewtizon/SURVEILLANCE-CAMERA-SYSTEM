@@ -72,12 +72,12 @@ const UserManagement = () => {
 
     const deleteUser = async () => {
         const token = localStorage.getItem('token');
-
+    
         try {
             const response = await axios.delete(`http://localhost:5000/users/${userToDelete.user_id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-
+    
             if (response.status === 200) {
                 setUsers(users.filter(user => user.user_id !== userToDelete.user_id));
                 setSnackbarMessage('User deleted successfully.');

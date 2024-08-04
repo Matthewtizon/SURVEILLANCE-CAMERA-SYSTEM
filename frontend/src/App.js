@@ -39,7 +39,7 @@ const App = () => {
         <Routes>
             <Route path="/login" element={<Login setRole={setRole} />} />
             <Route path="/register" element={role === 'Administrator' ? <Register /> : <Navigate to="/login" />} />
-            <Route path="/admin-dashboard" element={role === 'Administrator' ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/admin-dashboard" element={role === 'Administrator' || role === 'Assistant Administrator' ? <AdminDashboard /> : <Navigate to="/login" />} />
             <Route path="/security-dashboard" element={role === 'Security Staff' ? <SecurityDashboard /> : <Navigate to="/login" />} />
             <Route path="/camera-stream" element={role ? <CameraStream /> : <Navigate to="/login" />} />
             <Route path="/user-management" element={role ? <UserManagement /> : <Navigate to="/login" />} />

@@ -29,7 +29,7 @@ def create_app():
     @jwt_required()
     def admin_dashboard():
         current_user = get_jwt_identity()
-        if current_user['role'] != 'Administrator':
+        if current_user['role'] not in ['Administrator', 'Assistant Administrator']:
             return jsonify({'message': 'Unauthorized'}), 403
         return jsonify({'message': 'Welcome to the Admin Dashboard'}), 200
 
