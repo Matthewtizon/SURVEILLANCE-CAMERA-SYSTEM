@@ -6,7 +6,7 @@ import { Box, Button, Container, TextField, Typography, MenuItem, Select, InputL
 const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('Security Staff');
+    const [role, setRole] = useState('');
     const [message, setMessage] = useState('');
 
     const handleSubmit = async (e) => {
@@ -27,11 +27,11 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
             refreshUserData(); // Refresh the user data
             setUsername(''); // Clear the form fields
             setPassword('');
-            setRole('Security Staff'); // Reset role to default
+            setRole(''); // Reset role to default
             onSuccess(); // Hide the register form on success
         } catch (error) {
             console.error('Error registering user:', error);
-            const errorMessage = 'Error registering user: The user already exists';
+            const errorMessage = error.response?.data?.message || 'Error registering user';
             setMessage(errorMessage);
             showSnackbarMessage(errorMessage); // Show error message
         }
@@ -77,20 +77,25 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                             label="Role"
                             onChange={(e) => setRole(e.target.value)}
                         >
+                            <MenuItem value="" disabled>Please select a role</MenuItem>
                             <MenuItem value="Security Staff">Security Staff</MenuItem>
                             <MenuItem value="Assistant Administrator">Assistant Administrator</MenuItem>
-
                         </Select>
                     </FormControl>
                     <Button
                         type="submit"
                         fullWidth
                         variant="contained"
+                        color="primary"
                         sx={{ mt: 3, mb: 2 }}
                     >
                         Register
                     </Button>
-                    {message && <Typography color={message.includes('Error') ? 'error' : 'primary'}>{message}</Typography>}
+                    {message && (
+                        <Typography variant="body2" color="error">
+                            {message}
+                        </Typography>
+                    )}
                 </Box>
             </Box>
         </Container>

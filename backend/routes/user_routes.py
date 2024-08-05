@@ -20,8 +20,8 @@ def register():
     if not data or not data.get('username') or not data.get('password') or not data.get('role'):
         return jsonify({'message': 'Invalid input'}), 400
 
-    if current_user['role'] != 'Administrator' and data['role'] == 'Assistant Administrator':
-        return jsonify({'message': 'Only administrators can register assistant administrators'}), 403
+    if current_user['role'] == 'Assistant Administrator' and data['role'] != 'Security Staff':
+        return jsonify({'message': 'You can only register security staff in your current role'}), 403
 
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     new_user = User(username=data['username'], password=hashed_password, role=data['role'])
@@ -33,7 +33,7 @@ def register():
 @jwt_required()
 def get_users():
     current_user = get_jwt_identity()
-    # Allow Administrators and Security Staff to view users
+    # Allow Administrators, Assistant Administrators, and Security Staff to view users
     if current_user['role'] not in ['Administrator', 'Assistant Administrator', 'Security Staff']:
         return jsonify({'message': 'Unauthorized'}), 403
     

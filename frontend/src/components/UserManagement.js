@@ -72,12 +72,12 @@ const UserManagement = () => {
 
     const deleteUser = async () => {
         const token = localStorage.getItem('token');
-    
+
         try {
             const response = await axios.delete(`http://localhost:5000/users/${userToDelete.user_id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-    
+
             if (response.status === 200) {
                 setUsers(users.filter(user => user.user_id !== userToDelete.user_id));
                 setSnackbarMessage('User deleted successfully.');
@@ -94,7 +94,18 @@ const UserManagement = () => {
         if (role === 'Security Staff') {
             setSnackbarMessage('Security Staff cannot delete users. This action will be aborted.');
             setSnackbarOpen(true);
-            // Automatically close the snackbar after 2 seconds
+            setTimeout(() => {
+                setSnackbarOpen(false);
+            }, 2000);
+        } else if (username === user.username) {
+            setSnackbarMessage('You cannot delete your own account.');
+            setSnackbarOpen(true);
+            setTimeout(() => {
+                setSnackbarOpen(false);
+            }, 2000);
+        } else if (role === 'Assistant Administrator' && user.role === 'Administrator') {
+            setSnackbarMessage('Based on your role, you can only delete Security Staff accounts.');
+            setSnackbarOpen(true);
             setTimeout(() => {
                 setSnackbarOpen(false);
             }, 2000);
@@ -105,7 +116,12 @@ const UserManagement = () => {
     };
 
     const toggleRegisterForm = () => {
-        setShowRegisterForm(!showRegisterForm);
+        if (role === 'Administrator' || role === 'Assistant Administrator') {
+            setShowRegisterForm(!showRegisterForm);
+        } else {
+            setSnackbarMessage('Only administrators and assistant administrators can access the register form.');
+            setSnackbarOpen(true);
+        }
     };
 
     const toggleSidebar = () => {
