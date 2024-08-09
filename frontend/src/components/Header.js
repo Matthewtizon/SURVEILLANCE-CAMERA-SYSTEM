@@ -1,6 +1,8 @@
+// src/components/Header.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppBar, Box, Button, Toolbar, Typography } from '@mui/material';
+import ProfileManagement from './ProfileManagement'; // Import ProfileManagement
 
 const Header = ({ dashboardType, username, role }) => {
     const navigate = useNavigate();
@@ -17,9 +19,7 @@ const Header = ({ dashboardType, username, role }) => {
                     {dashboardType} Dashboard
                 </Typography>
                 <Box display="flex" alignItems="center">
-                    <Typography variant="body1" mr={2}>
-                        Logged in as: {username} ({role})
-                    </Typography>
+                    <ProfileManagement username={username} role={role} />
                     <Button color="inherit" onClick={handleLogout}>
                         Logout
                     </Button>

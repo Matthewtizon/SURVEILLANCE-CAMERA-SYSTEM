@@ -1,7 +1,7 @@
 # routes/camera_routes.py
-from flask import Blueprint, jsonify, Response
+from flask import Blueprint, jsonify, Response, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from camera import camera_queues, get_frame_from_camera
+from camera import camera_queues, get_frame_from_camera, max_ports
 import cv2
 import logging
 
@@ -14,7 +14,7 @@ def get_cameras():
     if current_user['role'] not in ['Administrator', 'Assistant Administrator', 'Security Staff']:
         return jsonify({'message': 'Unauthorized'}), 403
     cameras = [{'camera_id': camera_id} for camera_id in camera_queues.keys()]
-    return jsonify({'cameras': cameras}), 200
+    return jsonify({'cameras': cameras if cameras else []}), 200
 
 @camera_bp.route('/video_feed/<int:camera_id>', methods=['GET'])
 def video_feed(camera_id):
@@ -33,3 +33,19 @@ def gen_frames(camera_id):
         else:
             logging.warning(f"Camera {camera_id} is not streaming any frame.")
             break
+
+@camera_bp.route('/camera_status', methods=['GET'])
+def camera_status():
+    token = request.headers.get('Authorization')
+    if not token:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    # Here, you might want to validate the token, depending on your authentication setup
+
+    status = []
+    for i in range(max_ports):
+        if i in camera_queues:
+            status.append({'port': i, 'occupied': True})
+        else:
+            status.append({'port': i, 'occupied': False})
+    return jsonify(status)

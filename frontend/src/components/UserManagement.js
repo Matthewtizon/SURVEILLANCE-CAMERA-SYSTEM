@@ -26,6 +26,7 @@ import Header from './Header';
 import Sidebar from './SideBar';
 import Register from './Register';
 import './UserManagement.css'; // Import the CSS file
+import './Snackbar.css';
 
 const UserManagement = () => {
     const [loading, setLoading] = useState(true);
@@ -139,6 +140,7 @@ const UserManagement = () => {
 
     const handleRegisterSuccess = () => {
         setShowRegisterForm(false);
+        fetchUserData(); // Refresh user data after registration
     };
 
     const handleDeleteDialogClose = () => {
@@ -164,6 +166,9 @@ const UserManagement = () => {
                                     <TableRow>
                                         <TableCell>ID</TableCell>
                                         <TableCell>Username</TableCell>
+                                        <TableCell>Full Name</TableCell>
+                                        <TableCell>Email</TableCell>
+                                        <TableCell>Phone Number</TableCell>
                                         <TableCell>Role</TableCell>
                                         <TableCell>Actions</TableCell>
                                     </TableRow>
@@ -173,6 +178,9 @@ const UserManagement = () => {
                                         <TableRow key={user.user_id}>
                                             <TableCell>{user.user_id}</TableCell>
                                             <TableCell>{user.username}</TableCell>
+                                            <TableCell>{user.full_name}</TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell>{user.phone_number}</TableCell>
                                             <TableCell>{user.role}</TableCell>
                                             <TableCell>
                                                 <Button

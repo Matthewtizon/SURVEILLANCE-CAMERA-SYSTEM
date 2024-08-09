@@ -7,38 +7,41 @@ import Sidebar from './SideBar';
 import './Loading.css';
 
 const CameraStream = () => {
-    const [cameras, setCameras] = useState([]);
+    const [cameraStatus, setCameraStatus] = useState([]);
     const [error, setError] = useState(null);
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
 
     useEffect(() => {
-        const fetchCameras = async () => {
+        const fetchCameraStatus = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:5000/cameras', {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setCameras(response.data.cameras);
+                
+                const [cameraResponse, userResponse] = await Promise.all([
+                    axios.get('http://localhost:5000/camera_status', {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }),
+                    axios.get('http://localhost:5000/protected', {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }),
+                ]);
 
-                const userResponse = await axios.get('http://localhost:5000/protected', {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                setCameraStatus(cameraResponse.data);
                 const { role, username } = userResponse.data.logged_in_as;
                 setUsername(username);
                 setRole(role);
             } catch (error) {
-                console.error('Failed to fetch cameras or user info:', error);
-                setError('Failed to fetch cameras or user info. Please try again.');
+                console.error('Failed to fetch camera status or user info:', error);
+                setError('Failed to fetch camera status or user info. Please try again.');
             }
         };
 
-        fetchCameras();
+        fetchCameraStatus();
     }, []);
 
     const toggleSidebar = () => {
@@ -46,9 +49,29 @@ const CameraStream = () => {
     };
 
     const renderCameraFeed = (camera) => (
-        <Box key={camera.camera_id} my={2}>
-            <Typography variant="h6">Camera {camera.camera_id}</Typography>
-            <img src={`http://localhost:5000/video_feed/${camera.camera_id}`} alt={`Camera ${camera.camera_id}`} />
+        <Box key={camera.port} sx={{ my: 2, textAlign: 'center' }}>
+            <Typography variant="h6">Camera {camera.port}</Typography>
+            {camera.occupied ? (
+                <img
+                    src={`http://localhost:5000/video_feed/${camera.port}`}
+                    alt={`Camera ${camera.port}`}
+                    style={{ maxWidth: '100%', maxHeight: '400px' }}
+                />
+            ) : (
+                <Box
+                    sx={{
+                        width: '100%',
+                        height: '400px',
+                        backgroundColor: 'black',
+                        color: 'white',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                    }}
+                >
+                    Not Available
+                </Box>
+            )}
         </Box>
     );
 
@@ -59,8 +82,8 @@ const CameraStream = () => {
                 <Header dashboardType="Camera Management" username={username} role={role} />
                 <Container>
                     {error && <Typography color="error">{error}</Typography>}
-                    {cameras.length > 0 ? (
-                        cameras.map(camera => renderCameraFeed(camera))
+                    {cameraStatus.length > 0 ? (
+                        cameraStatus.map(camera => renderCameraFeed(camera))
                     ) : (
                         <Box className="loading-container">
                             <CircularProgress />

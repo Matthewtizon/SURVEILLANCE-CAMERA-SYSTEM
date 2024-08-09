@@ -16,7 +16,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
             const response = await axios.post('http://localhost:5000/register', {
                 username,
                 password,
-                role,
+                role
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`

@@ -66,9 +66,18 @@ def initialize():
         db.create_all()
         bcrypt = Bcrypt(app)
 
+        # Check if the user does not exist
         if db.session.query(User).filter_by(username='yasoob').count() < 1:
             hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
-            db.session.add(User(username='yasoob', password=hashed_password, role='Administrator'))
+            new_user = User(
+                username='yasoob',
+                password=hashed_password,
+                role='Administrator',
+                full_name='Yasoob Ali',
+                email='yasoob@example.com',
+                phone_number='123-456-7890'
+            )
+            db.session.add(new_user)
             db.session.commit()
 
     start_camera_monitoring()

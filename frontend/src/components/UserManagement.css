@@ -21,37 +21,33 @@
 }
 
 
-
-
-
-.MuiSnackbar-root {
-  top: 50px; /* Adjust to your preference */
+.user-management-container {
+  padding: 20px;
+  margin-left: 60px; /* Adjust as needed */
+  transition: margin-left 0.3s;
 }
 
-@keyframes slideIn {
-  from {
-      transform: translateY(-100%);
-      opacity: 0;
-  }
-  to {
-      transform: translateY(0);
-      opacity: 1;
-  }
+.sidebar-open {
+  margin-left: 240px; /* Adjust based on sidebar width */
 }
 
-.MuiSnackbar-root .MuiPaper-root {
-  animation: slideIn 0.3s ease-out;
-}
-
-
-
-.snackbar-top-center {
-  position: fixed;
-  top: 10px;
+.modal-box {
+  position: absolute;
+  top: 50%;
   left: 50%;
-  transform: translateY(-47%);
-  z-index: 1300; /* Ensure it's above other components */
-  width: auto;
-  max-width: 90%;
-  text-align: center;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 4px;
 }
+
+
+
+
+
+
+
+
+
