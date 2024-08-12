@@ -40,8 +40,6 @@ def camera_status():
     if not token:
         return jsonify({"error": "Unauthorized"}), 401
 
-    # Here, you might want to validate the token, depending on your authentication setup
-
     status = []
     for i in range(max_ports):
         if i in camera_queues:
