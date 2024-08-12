@@ -3,7 +3,7 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
-from threading import Thread, enumerate
+import threading  # Import threading module
 from models import User
 from camera import start_monitoring
 from config import Config
@@ -17,7 +17,6 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
     db.init_app(app)
     jwt = JWTManager(app)
-    logging.basicConfig(level=logging.DEBUG)
     
     from routes.user_routes import user_bp
     app.register_blueprint(user_bp)
@@ -51,8 +50,8 @@ def create_app():
 
 def start_camera_monitoring():
     # Ensure that only one camera monitoring thread is started
-    if not any(t.name == "CameraMonitor" and t.is_alive() for t in enumerate()):
-        monitor_thread = Thread(target=start_monitoring, name="CameraMonitor")
+    if not any(t.name == "CameraMonitor" and t.is_alive() for t in threading.enumerate()):
+        monitor_thread = threading.Thread(target=start_monitoring, name="CameraMonitor")
         monitor_thread.daemon = True
         monitor_thread.start()
         logging.info("Started camera monitoring.")

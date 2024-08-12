@@ -6,9 +6,6 @@ from collections import deque
 
 logging.basicConfig(level=logging.INFO)
 
-camera_queues = {}
-max_ports = 4  # Define the maximum number of ports to check
-
 class Camera:
     def __init__(self, camera_id):
         self.camera_id = camera_id
@@ -51,64 +48,15 @@ class Camera:
         self.cap.release()
         logging.info(f"Camera {self.camera_id} stopped streaming.")
 
-def detect_cameras():
-    cameras = []
-    for i in range(max_ports):
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            cameras.append(i)
-            cap.release()
-            logging.info(f"Camera detected at port {i}.")
-        else:
-            logging.info(f"No camera detected at port {i}.")
-    return cameras
+# Initialize single camera
+camera_id = 0  # Set to the index of the single camera
+camera = Camera(camera_id)
 
-def initialize_cameras():
-    camera_ids = detect_cameras()
-    for camera_id in camera_ids:
-        if camera_id not in camera_queues:
-            camera_queues[camera_id] = Camera(camera_id)
-        else:
-            logging.info(f"Camera {camera_id} already initialized.")
-
-def get_frame_from_camera(camera_id):
-    if camera_id in camera_queues:
-        return camera_queues[camera_id].get_frame()
-    return None
-
-def monitor_cameras():
-    while True:
-        current_cameras = set(camera_queues.keys())
-        detected_cameras = set(detect_cameras())
-
-        # Add new cameras
-        new_cameras = detected_cameras - current_cameras
-        for camera_id in new_cameras:
-            camera_queues[camera_id] = Camera(camera_id)
-            logging.info(f"Camera {camera_id} added and initialized.")
-
-        # Remove disconnected cameras
-        removed_cameras = current_cameras - detected_cameras
-        for camera_id in removed_cameras:
-            if camera_id in camera_queues:
-                camera_queues[camera_id].stop()
-                del camera_queues[camera_id]
-                logging.info(f"Camera {camera_id} removed and stopped.")
-
-        # Check status of remaining cameras
-        for camera_id in current_cameras & detected_cameras:
-            if camera_id in camera_queues:
-                logging.info(f"Camera {camera_id} is still connected.")
-            else:
-                logging.info(f"No camera detected at port {camera_id}.")
-
-        time.sleep(60)  # Check for new/removed cameras every 60 seconds
+def get_frame_from_camera():
+    return camera.get_frame()
 
 def start_monitoring():
-    initialize_cameras()
-    monitor_thread = threading.Thread(target=monitor_cameras, daemon=True)
-    monitor_thread.start()
-    logging.info("Started camera monitoring.")
+    logging.info("Started monitoring single camera.")
 
 if __name__ == "__main__":
     start_monitoring()
@@ -117,5 +65,4 @@ if __name__ == "__main__":
             time.sleep(1)  # Main thread stays alive to keep monitoring
     except KeyboardInterrupt:
         logging.info("Shutting down camera monitoring.")
-        for camera in camera_queues.values():
-            camera.stop()
+        camera.stop()

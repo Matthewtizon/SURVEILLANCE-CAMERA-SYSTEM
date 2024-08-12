@@ -1,14 +1,13 @@
-// src/components/CameraStream.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, CircularProgress, Container, Typography, Button, ButtonGroup, Switch, FormControlLabel } from '@mui/material';
+import { Box, CircularProgress, Container, Typography, Switch, FormControlLabel } from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
 import './Loading.css';
 
 const CameraStream = () => {
     const [cameraStatus, setCameraStatus] = useState([]);
-    const [selectedCamera, setSelectedCamera] = useState(null);
+    const [selectedCamera, setSelectedCamera] = useState(0);
     const [displayAllCameras, setDisplayAllCameras] = useState(false);
     const [error, setError] = useState(null);
     const [username, setUsername] = useState('');
@@ -21,7 +20,7 @@ const CameraStream = () => {
                 const token = localStorage.getItem('token');
                 
                 const [cameraResponse, userResponse] = await Promise.all([
-                    axios.get('http://localhost:5000/camera_status', {
+                    axios.get('http://localhost:5000/cameras', {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
@@ -33,15 +32,13 @@ const CameraStream = () => {
                     }),
                 ]);
 
-                setCameraStatus(cameraResponse.data);
+                setCameraStatus(cameraResponse.data.cameras);
                 const { role, username } = userResponse.data.logged_in_as;
                 setUsername(username);
                 setRole(role);
 
-                // Set the first camera as the selected camera initially
-                if (cameraResponse.data.length > 0) {
-                    setSelectedCamera(cameraResponse.data[0].port);
-                }
+                // Set the single camera as selected initially
+                setSelectedCamera(0);
             } catch (error) {
                 console.error('Failed to fetch camera status or user info:', error);
                 setError('Failed to fetch camera status or user info. Please try again.');
@@ -55,12 +52,8 @@ const CameraStream = () => {
         setSidebarOpen(!sidebarOpen);
     };
 
-    const handleCameraSelect = (port) => {
-        setSelectedCamera(port);
-    };
-
-    const renderCameraFeed = (camera) => (
-        <Box key={camera.port} sx={{ position: 'relative', my: 2, textAlign: 'center' }}>
+    const renderCameraFeed = () => (
+        <Box key={selectedCamera} sx={{ position: 'relative', my: 2, textAlign: 'center' }}>
             <Typography
                 variant="caption"
                 sx={{
@@ -73,40 +66,14 @@ const CameraStream = () => {
                     fontWeight: 'bold',
                 }}
             >
-                Camera {camera.port}
+                Camera {selectedCamera}
             </Typography>
-            {camera.occupied ? (
-                <img
-                    src={`http://localhost:5000/video_feed/${camera.port}`}
-                    alt={`Camera ${camera.port}`}
-                    style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'cover' }}
-                />
-            ) : (
-                <Box
-                    sx={{
-                        width: '100%',
-                        height: '400px',
-                        backgroundColor: 'black',
-                        color: 'white',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
-                >
-                    Not Available
-                </Box>
-            )}
-        </Box>
-    );
-
-    const renderAllCameras = () => (
-        <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '16px',
-            alignItems: 'start',
-        }}>
-            {cameraStatus.map(camera => renderCameraFeed(camera))}
+            <img
+                src={`http://localhost:5000/video_feed/${selectedCamera}`}
+                alt={`Camera ${selectedCamera}`}
+                style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'cover' }}
+                onError={() => setError('Failed to load camera feed.')}
+            />
         </Box>
     );
 
@@ -132,35 +99,7 @@ const CameraStream = () => {
                                     label="Display All Cameras"
                                 />
                             </Box>
-                            {displayAllCameras ? (
-                                renderAllCameras()
-                            ) : (
-                                renderCameraFeed(cameraStatus.find(cam => cam.port === selectedCamera))
-                            )}
-                            {!displayAllCameras && (
-                                <Box sx={{ mt: 4, textAlign: 'center' }}>
-                                    <ButtonGroup variant="contained" aria-label="camera selection">
-                                        {cameraStatus.map(camera => (
-                                            <Button
-                                                key={camera.port}
-                                                onClick={() => handleCameraSelect(camera.port)}
-                                                disabled={!camera.occupied}
-                                                sx={{
-                                                    borderColor: selectedCamera === camera.port ? 'blue' : 'transparent',
-                                                    color: selectedCamera === camera.port ? 'blue' : 'inherit',
-                                                    borderWidth: '2px',
-                                                    borderStyle: 'solid',
-                                                    '&:hover': {
-                                                        borderColor: selectedCamera === camera.port ? 'darkblue' : 'inherit',
-                                                    },
-                                                }}
-                                            >
-                                                Camera {camera.port}
-                                            </Button>
-                                        ))}
-                                    </ButtonGroup>
-                                </Box>
-                            )}
+                            {renderCameraFeed()}
                         </Box>
                     ) : (
                         <Box className="loading-container">
