@@ -1,4 +1,3 @@
-# routes/camera_routes.py
 from flask import Blueprint, jsonify, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from camera import get_frame_from_camera
@@ -16,6 +15,7 @@ def get_cameras():
     return jsonify({'cameras': [{'camera_id': 0}]})  # Single camera
 
 @camera_bp.route('/video_feed/<int:camera_id>', methods=['GET'])
+@jwt_required()
 def video_feed(camera_id):
     if camera_id != 0:
         return jsonify({"error": "Camera not found"}), 404

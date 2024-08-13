@@ -1,68 +1,82 @@
 import cv2
+from simple_facerec import SimpleFacerec
 import threading
-import logging
-import time
-from collections import deque
-
-logging.basicConfig(level=logging.INFO)
 
 class Camera:
-    def __init__(self, camera_id):
-        self.camera_id = camera_id
-        self.cap = cv2.VideoCapture(camera_id)
-        self.frames = deque(maxlen=10)
-        self.lock = threading.Lock()
-        self.running = True
-        self.thread = threading.Thread(target=self.update_frames, daemon=True)
-        self.thread.start()
-        logging.info(f"Camera {camera_id} initialized and streaming started.")
-
-    def update_frames(self):
-        retries = 0
-        max_retries = 5  # Maximum number of retries if camera fails
-        while self.running:
-            if not self.cap.isOpened():
-                logging.error(f"Camera {self.camera_id} not opened.")
-                break
-            ret, frame = self.cap.read()
-            if ret:
-                with self.lock:
-                    self.frames.append(frame)
-                retries = 0  # Reset retries on successful read
-            else:
-                retries += 1
-                logging.warning(f"Camera {self.camera_id} failed to capture frame (attempt {retries}/{max_retries}).")
-                if retries >= max_retries:
-                    self.running = False
-                    logging.error(f"Camera {self.camera_id} stopped after {max_retries} failed attempts.")
-                time.sleep(1)  # Wait before retrying
+    def __init__(self, encoding_images_path):
+        # Initialize the face recognition system
+        self.sfr = SimpleFacerec()
+        self.sfr.load_encoding_images(encoding_images_path)
+        
+        # Initialize the camera
+        self.cap = cv2.VideoCapture(0)
+        
+        if not self.cap.isOpened():
+            raise Exception("Could not open video device")
 
     def get_frame(self):
-        with self.lock:
-            if self.frames:
-                return self.frames[-1]
-            return None
+        """
+        Capture a frame from the camera, perform face recognition, and return the processed frame.
+        """
+        ret, frame = self.cap.read()
+        if not ret:
+            raise Exception("Failed to grab frame")
 
-    def stop(self):
-        self.running = False
+        # Detect faces
+        face_locations, face_names = self.sfr.detect_known_faces(frame)
+
+        # Draw rectangles and names around detected faces
+        for face_loc, name in zip(face_locations, face_names):
+            y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+            cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
+
+        return frame
+
+    def show_frame(self):
+        """
+        Display the video feed with detected faces.
+        """
+        while True:
+            frame = self.get_frame()
+            cv2.imshow('Video Feed', frame)
+
+            key = cv2.waitKey(1)
+            if key == 27:  # Escape key
+                break
+
+        self.release()
+
+    def release(self):
+        """Release the camera when done."""
         self.cap.release()
-        logging.info(f"Camera {self.camera_id} stopped streaming.")
-
-# Initialize single camera
-camera_id = 0  # Set to the index of the single camera
-camera = Camera(camera_id)
+        cv2.destroyAllWindows()
 
 def get_frame_from_camera():
-    return camera.get_frame()
+    """Function to be used in the camera_routes.py file."""
+    camera = Camera("images/")
+    try:
+        frame = camera.get_frame()
+        ret, buffer = cv2.imencode('.jpg', frame)
+        return buffer.tobytes()
+    finally:
+        camera.release()
 
 def start_monitoring():
-    logging.info("Started monitoring single camera.")
+    """Function to start camera monitoring in a separate thread."""
+    camera = Camera("images/")
+    while True:
+        try:
+            frame = camera.get_frame()
+            # Save or process frame as needed
+        except Exception as e:
+            print(f"Camera monitoring error: {e}")
+            break
+    camera.release()
 
-if __name__ == "__main__":
-    start_monitoring()
-    try:
-        while True:
-            time.sleep(1)  # Main thread stays alive to keep monitoring
-    except KeyboardInterrupt:
-        logging.info("Shutting down camera monitoring.")
-        camera.stop()
+def start_showing_frame():
+    """Start the frame showing in a separate thread."""
+    camera = Camera("images/")
+    show_thread = threading.Thread(target=camera.show_frame)
+    show_thread.daemon = True
+    show_thread.start()
