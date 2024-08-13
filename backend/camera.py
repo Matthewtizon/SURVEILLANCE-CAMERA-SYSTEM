@@ -1,6 +1,5 @@
 import cv2
 from simple_facerec import SimpleFacerec
-import threading
 
 class Camera:
     def __init__(self, encoding_images_path):
@@ -16,7 +15,8 @@ class Camera:
 
     def get_frame(self):
         """
-        Capture a frame from the camera, perform face recognition, and return the processed frame.
+        Capture a frame from the camera, perform face recognition, 
+        and return the processed frame.
         """
         ret, frame = self.cap.read()
         if not ret:
@@ -31,24 +31,16 @@ class Camera:
             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
 
+        # Display the frame in a window
+        cv2.imshow('Video Feed', frame)
+
+        # Add a delay to allow window updates
+        cv2.waitKey(1)
+
         return frame
 
-    def show_frame(self):
-        """
-        Display the video feed with detected faces.
-        """
-        while True:
-            frame = self.get_frame()
-            cv2.imshow('Video Feed', frame)
-
-            key = cv2.waitKey(1)
-            if key == 27:  # Escape key
-                break
-
-        self.release()
-
     def release(self):
-        """Release the camera when done."""
+        """Release the camera and close any open windows."""
         self.cap.release()
         cv2.destroyAllWindows()
 
@@ -73,10 +65,3 @@ def start_monitoring():
             print(f"Camera monitoring error: {e}")
             break
     camera.release()
-
-def start_showing_frame():
-    """Start the frame showing in a separate thread."""
-    camera = Camera("images/")
-    show_thread = threading.Thread(target=camera.show_frame)
-    show_thread.daemon = True
-    show_thread.start()

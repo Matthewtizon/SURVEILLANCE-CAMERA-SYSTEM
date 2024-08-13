@@ -3,9 +3,9 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
-import threading
+import threading  # Import threading module
 from models import User
-from camera import start_monitoring, start_showing_frame
+from camera import start_monitoring
 from config import Config
 from db import db
 
@@ -80,7 +80,6 @@ def initialize():
             db.session.commit()
 
     start_camera_monitoring()
-    start_showing_frame()  # Start showing camera feed
 
     try:
         app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
