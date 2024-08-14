@@ -3,7 +3,7 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import logging
-import threading  # Import threading module
+import threading
 from models import User
 from camera import start_monitoring
 from config import Config
@@ -49,7 +49,7 @@ def create_app():
     return app
 
 def start_camera_monitoring():
-    # Ensure that only one camera monitoring thread is started
+    """Ensure that only one camera monitoring thread is started."""
     if not any(t.name == "CameraMonitor" and t.is_alive() for t in threading.enumerate()):
         monitor_thread = threading.Thread(target=start_monitoring, name="CameraMonitor")
         monitor_thread.daemon = True

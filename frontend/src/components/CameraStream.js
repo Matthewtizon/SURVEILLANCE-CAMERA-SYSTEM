@@ -37,8 +37,8 @@ const CameraStream = () => {
                 setUsername(username);
                 setRole(role);
 
-                // Set the single camera as selected initially
-                setSelectedCamera(0);
+                // Set the first camera as selected initially
+                setSelectedCamera(cameraResponse.data.cameras[0]?.camera_id || 0);
             } catch (error) {
                 console.error('Failed to fetch camera status or user info:', error);
                 setError('Failed to fetch camera status or user info. Please try again.');
@@ -52,8 +52,8 @@ const CameraStream = () => {
         setSidebarOpen(!sidebarOpen);
     };
 
-    const renderCameraFeed = () => (
-        <Box key={selectedCamera} sx={{ position: 'relative', my: 2, textAlign: 'center' }}>
+    const renderCameraFeed = (cameraId) => (
+        <Box key={cameraId} sx={{ position: 'relative', my: 2, textAlign: 'center' }}>
             <Typography
                 variant="caption"
                 sx={{
@@ -66,13 +66,17 @@ const CameraStream = () => {
                     fontWeight: 'bold',
                 }}
             >
-                Camera {selectedCamera}
+                Camera {cameraId}
             </Typography>
             <img
-                src={`http://localhost:5000/video_feed/${selectedCamera}`}
-                alt={`Camera ${selectedCamera}`}
+                src={`http://localhost:5000/video_feed/${cameraId}?token=${localStorage.getItem('token')}`}
+                alt={`Camera ${cameraId}`}
                 style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'cover' }}
-                onError={() => setError('Failed to load camera feed.')}
+                onError={(e) => {
+                    const { nativeEvent } = e;
+                    setError('Failed to load camera feed.');
+                    console.error('Error loading camera feed:', nativeEvent);
+                }}
             />
         </Box>
     );
@@ -99,7 +103,11 @@ const CameraStream = () => {
                                     label="Display All Cameras"
                                 />
                             </Box>
-                            {renderCameraFeed()}
+                            {displayAllCameras ? (
+                                cameraStatus.map(camera => renderCameraFeed(camera.camera_id))
+                            ) : (
+                                renderCameraFeed(selectedCamera)
+                            )}
                         </Box>
                     ) : (
                         <Box className="loading-container">

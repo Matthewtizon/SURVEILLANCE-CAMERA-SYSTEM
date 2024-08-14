@@ -31,37 +31,26 @@ class Camera:
             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 200), 4)
 
-        # Display the frame in a window
-        cv2.imshow('Video Feed', frame)
-
-        # Add a delay to allow window updates
-        cv2.waitKey(1)
-
         return frame
 
     def release(self):
         """Release the camera and close any open windows."""
         self.cap.release()
-        cv2.destroyAllWindows()
+
+# Create a singleton camera instance
+camera_instance = Camera("images/")
 
 def get_frame_from_camera():
     """Function to be used in the camera_routes.py file."""
-    camera = Camera("images/")
-    try:
-        frame = camera.get_frame()
-        ret, buffer = cv2.imencode('.jpg', frame)
-        return buffer.tobytes()
-    finally:
-        camera.release()
+    return camera_instance.get_frame()
 
 def start_monitoring():
     """Function to start camera monitoring in a separate thread."""
-    camera = Camera("images/")
     while True:
         try:
-            frame = camera.get_frame()
+            frame = get_frame_from_camera()
             # Save or process frame as needed
         except Exception as e:
             print(f"Camera monitoring error: {e}")
             break
-    camera.release()
+    camera_instance.release()
