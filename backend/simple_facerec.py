@@ -10,7 +10,7 @@ class SimpleFacerec:
         self.known_face_names = []
 
         # Resize frame for a faster speed
-        self.frame_resizing = 0.25
+        self.frame_resizing = 0.5  # Increased resizing factor for better accuracy
 
     def load_encoding_images(self, images_path):
         """
