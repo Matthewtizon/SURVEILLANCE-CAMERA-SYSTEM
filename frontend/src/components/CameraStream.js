@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Box, CircularProgress, Container, Typography, Switch, FormControlLabel } from '@mui/material';
+import { Box, CircularProgress, Container, Typography, Switch, FormControlLabel, Button, Grid } from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
 import './Loading.css';
@@ -13,6 +13,9 @@ const CameraStream = () => {
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [image, setImage] = useState(null);
+    const [uploadError, setUploadError] = useState(null);
+    const [images, setImages] = useState([]);  // Initialize images as an empty array
 
     useEffect(() => {
         const fetchCameraStatus = async () => {
@@ -37,8 +40,10 @@ const CameraStream = () => {
                 setUsername(username);
                 setRole(role);
 
-                // Set the first camera as selected initially
                 setSelectedCamera(cameraResponse.data.cameras[0]?.camera_id || 0);
+
+                // Fetch images after setting the user info
+                fetchImages();
             } catch (error) {
                 console.error('Failed to fetch camera status or user info:', error);
                 setError('Failed to fetch camera status or user info. Please try again.');
@@ -48,8 +53,59 @@ const CameraStream = () => {
         fetchCameraStatus();
     }, []);
 
+    const fetchImages = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get('http://localhost:5000/images', {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setImages(response.data || []);  // Ensure response.data is an array
+        } catch (error) {
+            console.error('Failed to fetch images:', error);
+            setError('Failed to fetch images. Please try again.');
+        }
+    };
+
     const toggleSidebar = () => {
         setSidebarOpen(!sidebarOpen);
+    };
+
+    const handleImageChange = (event) => {
+        setImage(event.target.files[0]);
+    };
+
+    const handleImageUpload = async () => {
+        if (!image) {
+            setUploadError('Please select an image to upload.');
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('image', image);
+
+            const token = localStorage.getItem('token');
+            const response = await axios.post('http://localhost:5000/upload_image', formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            if (response.status === 200) {
+                setUploadError(null);
+                alert('Image uploaded successfully!');
+                setImage(null);
+                fetchImages(); // Fetch the images again after uploading
+            } else {
+                setUploadError('Failed to upload the image.');
+            }
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            setUploadError('Error uploading image. Please try again.');
+        }
     };
 
     const renderCameraFeed = (cameraId) => (
@@ -114,6 +170,48 @@ const CameraStream = () => {
                             <CircularProgress />
                         </Box>
                     )}
+                    <Box sx={{ mt: 4, textAlign: 'center' }}>
+                        <Typography variant="h6">Upload an Image</Typography>
+                        <input
+                            accept="image/*"
+                            id="contained-button-file"
+                            type="file"
+                            style={{ display: 'none' }}
+                            onChange={handleImageChange}
+                        />
+                        <label htmlFor="contained-button-file">
+                            <Button variant="contained" component="span">
+                                Choose Image
+                            </Button>
+                        </label>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            sx={{ ml: 2 }}
+                            onClick={handleImageUpload}
+                        >
+                            Upload
+                        </Button>
+                        {uploadError && <Typography color="error">{uploadError}</Typography>}
+                    </Box>
+                    <Box sx={{ mt: 4 }}>
+                        <Typography variant="h6">Uploaded Images</Typography>
+                        <Grid container spacing={2}>
+                            {images.length > 0 ? (
+                                images.map((img, index) => (
+                                    <Grid item xs={12} sm={6} md={4} key={index}>
+                                        <img
+                                            src={`http://localhost:5000/images/${img}`}
+                                            alt={`Uploaded ${img}`}
+                                            style={{ width: '100%', height: 'auto', borderRadius: '4px' }}
+                                        />
+                                    </Grid>
+                                ))
+                            ) : (
+                                <Typography>No images found.</Typography>
+                            )}
+                        </Grid>
+                    </Box>
                 </Container>
             </Box>
         </Box>

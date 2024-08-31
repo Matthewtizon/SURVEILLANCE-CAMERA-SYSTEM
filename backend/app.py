@@ -1,19 +1,28 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, send_from_directory
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+import os
 import logging
 import threading
+from werkzeug.utils import secure_filename
 from models import User
 from camera import start_monitoring
 from config import Config
 from db import db
 
+UPLOAD_FOLDER = 'images'  # Update this path to your images folder
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
 logging.basicConfig(level=logging.DEBUG)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
     db.init_app(app)
     jwt = JWTManager(app)
@@ -45,6 +54,40 @@ def create_app():
     def protected():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
+
+    # Route to handle image upload
+    @app.route('/upload_image', methods=['POST'])
+    @jwt_required()
+    def upload_image():
+        current_user = get_jwt_identity()
+        if current_user['role'] not in ['Administrator', 'Assistant Administrator']:
+            return jsonify({'message': 'Unauthorized'}), 403
+        
+        if 'image' not in request.files:
+            return jsonify({'error': 'No file part'}), 400
+
+        file = request.files['image']
+        
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return jsonify({'success': True, 'filename': filename}), 200
+        
+        return jsonify({'error': 'File upload failed'}), 500
+    
+    @app.route('/images', methods=['GET'])
+    def list_images():
+        images_directory = os.path.join(app.root_path, 'images')
+        images = os.listdir(images_directory)
+        return jsonify(images)
+
+    @app.route('/images/<filename>')
+    def get_image(filename):
+        images_directory = os.path.join(app.root_path, 'images')
+        return send_from_directory(images_directory, filename)
 
     return app
 
