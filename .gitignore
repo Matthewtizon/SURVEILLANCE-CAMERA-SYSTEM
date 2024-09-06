@@ -23,7 +23,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Ignore virtual environment directory
-venv/
+/venv
 
 
 credentials.json
