@@ -16,7 +16,7 @@ class Camera:
         self.cap = cv2.VideoCapture(0)
         if not self.cap.isOpened():
             raise Exception("Could not open video device")
-        
+            
         # Video recording attributes
         self.recording = False
         self.video_file_path = None
