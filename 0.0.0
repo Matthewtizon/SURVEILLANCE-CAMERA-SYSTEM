@@ -1,0 +1,198 @@
+Collecting playground
+  Using cached playground-0.0.0-py3-none-any.whl.metadata (666 bytes)
+Collecting mujoco-py (from playground)
+  Using cached mujoco_py-2.1.2.14-py3-none-any.whl.metadata (669 bytes)
+Collecting gym (from playground)
+  Using cached gym-0.26.2.tar.gz (721 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting baselines (from playground)
+  Using cached baselines-0.1.5.tar.gz (123 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting params-proto (from playground)
+  Using cached params_proto-2.12.1-py3-none-any.whl.metadata (8.7 kB)
+Collecting ml-logger (from playground)
+  Using cached ml_logger-0.10.24-py3-none-any.whl.metadata (24 kB)
+Collecting moleskin (from playground)
+  Using cached moleskin-1.5.1-py3-none-any.whl.metadata (701 bytes)
+Collecting visdom (from playground)
+  Using cached visdom-0.2.4.tar.gz (1.4 MB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting scipy (from playground)
+  Using cached scipy-1.14.1-cp311-cp311-win_amd64.whl.metadata (60 kB)
+Collecting tqdm (from playground)
+  Using cached tqdm-4.66.5-py3-none-any.whl.metadata (57 kB)
+Collecting joblib (from playground)
+  Using cached joblib-1.4.2-py3-none-any.whl.metadata (5.4 kB)
+Collecting zmq (from playground)
+  Using cached zmq-0.0.0.zip (2.2 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting dill (from playground)
+  Using cached dill-0.3.8-py3-none-any.whl.metadata (10 kB)
+Collecting progressbar2 (from playground)
+  Using cached progressbar2-4.5.0-py3-none-any.whl.metadata (16 kB)
+Collecting mpi4py (from playground)
+  Using cached mpi4py-4.0.0-cp311-cp311-win_amd64.whl.metadata (10 kB)
+Collecting cloudpickle (from playground)
+  Using cached cloudpickle-3.0.0-py3-none-any.whl.metadata (7.0 kB)
+Collecting tensorflow>=1.4.0 (from playground)
+  Using cached tensorflow-2.17.0-cp311-cp311-win_amd64.whl.metadata (3.2 kB)
+Requirement already satisfied: click in c:\users\john matthew\desktop\projects\surveillance-camera-system\venv\lib\site-packages (from playground) (8.1.7)
+Collecting tensorflow-intel==2.17.0 (from tensorflow>=1.4.0->playground)
+  Using cached tensorflow_intel-2.17.0-cp311-cp311-win_amd64.whl.metadata (5.0 kB)
+Collecting absl-py>=1.0.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached absl_py-2.1.0-py3-none-any.whl.metadata (2.3 kB)
+Collecting astunparse>=1.6.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached astunparse-1.6.3-py2.py3-none-any.whl.metadata (4.4 kB)
+Collecting flatbuffers>=24.3.25 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached flatbuffers-24.3.25-py2.py3-none-any.whl.metadata (850 bytes)
+Collecting gast!=0.5.0,!=0.5.1,!=0.5.2,>=0.2.1 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached gast-0.6.0-py3-none-any.whl.metadata (1.3 kB)
+Collecting google-pasta>=0.1.1 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached google_pasta-0.2.0-py3-none-any.whl.metadata (814 bytes)
+Collecting h5py>=3.10.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached h5py-3.11.0-cp311-cp311-win_amd64.whl.metadata (2.5 kB)
+Collecting libclang>=13.0.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached libclang-18.1.1-py2.py3-none-win_amd64.whl.metadata (5.3 kB)
+Collecting ml-dtypes<0.5.0,>=0.3.1 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached ml_dtypes-0.4.0-cp311-cp311-win_amd64.whl.metadata (20 kB)
+Collecting opt-einsum>=2.3.2 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached opt_einsum-3.3.0-py3-none-any.whl.metadata (6.5 kB)
+Collecting packaging (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached packaging-24.1-py3-none-any.whl.metadata (3.2 kB)
+Collecting protobuf!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5,<5.0.0dev,>=3.20.3 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached protobuf-4.25.4-cp310-abi3-win_amd64.whl.metadata (541 bytes)
+Collecting requests<3,>=2.21.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached requests-2.32.3-py3-none-any.whl.metadata (4.6 kB)
+Requirement already satisfied: setuptools in c:\users\john matthew\desktop\projects\surveillance-camera-system\venv\lib\site-packages (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground) (72.1.0)
+Collecting six>=1.12.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached six-1.16.0-py2.py3-none-any.whl.metadata (1.8 kB)
+Collecting termcolor>=1.1.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached termcolor-2.4.0-py3-none-any.whl.metadata (6.1 kB)
+Collecting typing-extensions>=3.6.6 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached typing_extensions-4.12.2-py3-none-any.whl.metadata (3.0 kB)
+Collecting wrapt>=1.11.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached wrapt-1.16.0-cp311-cp311-win_amd64.whl.metadata (6.8 kB)
+Collecting grpcio<2.0,>=1.24.3 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached grpcio-1.66.1-cp311-cp311-win_amd64.whl.metadata (4.0 kB)
+Collecting tensorboard<2.18,>=2.17 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached tensorboard-2.17.1-py3-none-any.whl.metadata (1.6 kB)
+Collecting keras>=3.2.0 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached keras-3.5.0-py3-none-any.whl.metadata (5.8 kB)
+Collecting tensorflow-io-gcs-filesystem>=0.23.1 (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground)
+  Using cached tensorflow_io_gcs_filesystem-0.31.0-cp311-cp311-win_amd64.whl.metadata (14 kB)
+Requirement already satisfied: numpy<2.0.0,>=1.23.5 in c:\users\john matthew\desktop\projects\surveillance-camera-system\venv\lib\site-packages (from tensorflow-intel==2.17.0->tensorflow>=1.4.0->playground) (1.26.4)
+Requirement already satisfied: colorama in c:\users\john matthew\desktop\projects\surveillance-camera-system\venv\lib\site-packages (from click->playground) (0.4.6)
+Collecting gym-notices>=0.0.4 (from gym->playground)
+  Using cached gym_notices-0.0.8-py3-none-any.whl.metadata (1.0 kB)
+Collecting boto3 (from ml-logger->playground)
+  Using cached boto3-1.35.14-py3-none-any.whl.metadata (6.6 kB)
+Collecting cloudpickle (from playground)
+  Using cached cloudpickle-1.3.0-py2.py3-none-any.whl.metadata (4.7 kB)
+Collecting expandvars (from ml-logger->playground)
+  Using cached expandvars-0.12.0-py3-none-any.whl.metadata (6.0 kB)
+Collecting google-api-python-client (from ml-logger->playground)
+  Using cached google_api_python_client-2.144.0-py2.py3-none-any.whl.metadata (6.7 kB)
+Collecting google-cloud-storage (from ml-logger->playground)
+  Using cached google_cloud_storage-2.18.2-py2.py3-none-any.whl.metadata (9.1 kB)
+Collecting imageio (from ml-logger->playground)
+  Using cached imageio-2.35.1-py3-none-any.whl.metadata (4.9 kB)
+Collecting imageio-ffmpeg (from ml-logger->playground)
+  Using cached imageio_ffmpeg-0.5.1-py3-none-win_amd64.whl.metadata (1.6 kB)
+Collecting jaynes>=0.9.0 (from ml-logger->playground)
+  Using cached jaynes-0.9.9-py3-none-any.whl.metadata (8.3 kB)
+Collecting matplotlib (from ml-logger->playground)
+  Using cached matplotlib-3.9.2-cp311-cp311-win_amd64.whl.metadata (11 kB)
+Collecting more-itertools (from ml-logger->playground)
+  Using cached more_itertools-10.5.0-py3-none-any.whl.metadata (36 kB)
+Requirement already satisfied: pillow in c:\users\john matthew\desktop\projects\surveillance-camera-system\venv\lib\site-packages (from ml-logger->playground) (10.4.0)
+Collecting pycurl (from ml-logger->playground)
+  Using cached pycurl-7.45.3-cp311-cp311-win_amd64.whl.metadata (4.4 kB)
+Collecting requests-futures (from ml-logger->playground)
+  Using cached requests_futures-1.0.1-py2.py3-none-any.whl.metadata (12 kB)
+Collecting requests-toolbelt (from ml-logger->playground)
+  Using cached requests_toolbelt-1.0.0-py2.py3-none-any.whl.metadata (14 kB)
+Collecting ruamel.yaml (from ml-logger->playground)
+  Using cached ruamel.yaml-0.18.6-py3-none-any.whl.metadata (23 kB)
+Collecting sanic (from ml-logger->playground)
+  Using cached sanic-24.6.0-py3-none-any.whl.metadata (10 kB)
+Collecting sanic-cors (from ml-logger->playground)
+  Using cached Sanic_Cors-2.2.0-py2.py3-none-any.whl.metadata (7.8 kB)
+Collecting scikit-image (from ml-logger->playground)
+  Using cached scikit_image-0.24.0-cp311-cp311-win_amd64.whl.metadata (14 kB)
+Collecting scikit-video (from ml-logger->playground)
+  Using cached scikit_video-1.1.11-py2.py3-none-any.whl.metadata (1.1 kB)
+Collecting typing (from ml-logger->playground)
+  Using cached typing-3.7.4.3.tar.gz (78 kB)
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Collecting urllib3 (from ml-logger->playground)
+  Using cached urllib3-2.2.2-py3-none-any.whl.metadata (6.4 kB)
+Collecting wcmatch (from ml-logger->playground)
+  Using cached wcmatch-9.0-py3-none-any.whl.metadata (4.9 kB)
+Collecting waterbear>=2.6.8 (from params-proto->playground)
+  Using cached waterbear-2.6.8-py3-none-any.whl.metadata (9.8 kB)
+Collecting argparse (from params-proto->playground)
+  Using cached argparse-1.4.0-py2.py3-none-any.whl.metadata (2.8 kB)
+Collecting argcomplete (from params-proto->playground)
+  Using cached argcomplete-3.5.0-py3-none-any.whl.metadata (16 kB)
+INFO: pip is looking at multiple versions of moleskin to determine which version is compatible with other requirements. This could take a while.
+Collecting moleskin (from playground)
+  Using cached moleskin-1.5.0-py3-none-any.whl.metadata (701 bytes)
+  Using cached moleskin-1.4.0-py3-none-any.whl.metadata (735 bytes)
+  Using cached moleskin-1.3.1-py3-none-any.whl.metadata (735 bytes)
+  Using cached moleskin-1.3.0-py3-none-any.whl.metadata (701 bytes)
+Collecting boltons (from moleskin->playground)
+  Using cached boltons-24.0.0-py3-none-any.whl.metadata (1.5 kB)
+Collecting moleskin (from playground)
+  Using cached moleskin-1.2.0-py3-none-any.whl.metadata (701 bytes)
+  Using cached moleskin-1.1.1-py3-none-any.whl.metadata (701 bytes)
+  Using cached moleskin-1.1.0-py3-none-any.whl.metadata (701 bytes)
+INFO: pip is still looking at multiple versions of moleskin to determine which version is compatible with other requirements. This could take a while.
+  Using cached moleskin-1.0.0-py3-none-any.whl.metadata (678 bytes)
+  Using cached moleskin-0.1.1-py3-none-any.whl.metadata (678 bytes)
+  Using cached moleskin-0.1.0-py3-none-any.whl.metadata (678 bytes)
+  Using cached moleskin-0.0.8-py3-none-any.whl.metadata (590 bytes)
+  Using cached moleskin-0.0.7-py3-none-any.whl.metadata (573 bytes)
+INFO: This is taking longer than usual. You might need to provide the dependency resolver with stricter constraints to reduce runtime. See https://pip.pypa.io/warnings/backtracking for guidance. If you want to abort this run, press Ctrl + C.
+  Using cached moleskin-0.0.6-py3-none-any.whl.metadata (573 bytes)
+  Using cached moleskin-0.0.5-py3-none-any.whl.metadata (549 bytes)
+  Using cached moleskin-0.0.4-py3-none-any.whl.metadata (549 bytes)
+  Using cached moleskin-0.0.3-py3-none-any.whl.metadata (549 bytes)
+  Using cached moleskin-0.0.2-py3-none-any.whl.metadata (549 bytes)
+  Using cached moleskin-0.0.1-py3-none-any.whl.metadata (549 bytes)
+  Using cached moleskin-0.0.0-py3-none-any.whl.metadata (549 bytes)
+
+The conflict is caused by:
+    moleskin 1.5.1 depends on pprint
+    moleskin 1.5.0 depends on pprint
+    moleskin 1.4.0 depends on pprint
+    moleskin 1.3.1 depends on pprint
+    moleskin 1.3.0 depends on pprint
+    moleskin 1.2.0 depends on pprint
+    moleskin 1.1.1 depends on pprint
+    moleskin 1.1.0 depends on pprint
+    moleskin 1.0.0 depends on pprint
+    moleskin 0.1.1 depends on pprint
+    moleskin 0.1.0 depends on pprint
+    moleskin 0.0.8 depends on pprint
+    moleskin 0.0.7 depends on pprint
+    moleskin 0.0.6 depends on pprint
+    moleskin 0.0.5 depends on pprint
+    moleskin 0.0.4 depends on pprint
+    moleskin 0.0.3 depends on pprint
+    moleskin 0.0.2 depends on pprint
+    moleskin 0.0.1 depends on pprint
+    moleskin 0.0.0 depends on pprint
+
+To fix this you could try to:
+1. loosen the range of package versions you've specified
+2. remove package versions to allow pip to attempt to solve the dependency conflict
+

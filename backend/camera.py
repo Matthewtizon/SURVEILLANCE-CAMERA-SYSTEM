@@ -4,7 +4,7 @@ import time
 import os
 import logging
 import ffmpeg
-from playsound import playsound  # Import playsound library
+#from playsound import playsound  # Import playsound library
 
 class Camera:
     def __init__(self, encoding_images_path):
@@ -53,7 +53,7 @@ class Camera:
 
     def play_alert_sound(self):
         """Play the alert sound."""
-        playsound(self.alert_sound_path)
+        #playsound(self.alert_sound_path)
 
     def get_frame(self):
         """
