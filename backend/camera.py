@@ -8,6 +8,10 @@ from playsound import playsound  # Import playsound library
 
 class Camera:
     def __init__(self, encoding_images_path):
+         # Enable OpenCV optimizations
+        cv2.setUseOptimized(True)
+        cv2.setNumThreads(4)  # Adjust based on your CPU's cores
+
         # Initialize the face recognition system
         self.sfr = SimpleFacerec()
         self.sfr.load_encoding_images(encoding_images_path)
