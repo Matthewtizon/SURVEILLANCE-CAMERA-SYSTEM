@@ -2,11 +2,12 @@ import cv2
 import time
 import os
 import logging
-import ffmpeg
-from playsound import playsound  # Import playsound library
 from deepface import DeepFace
 import numpy as np
 import tensorflow as tf
+import gc  # For garbage collection
+
+logging.basicConfig(level=logging.DEBUG)
 
 # Ensure GPU is available and set memory growth to prevent allocation errors
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -37,24 +38,18 @@ class Camera:
         # Load the dataset for facial recognition
         self.dataset = self.load_dataset(dataset_path)
 
-        # Video recording attributes
-        self.recording = False
-        self.video_file_path = None
-        self.video_writer = None
-        self.no_face_frames = 0
-        self.max_no_face_frames = 30  # Adjust this value based on your requirement (e.g., 30 frames)
-
         # Ensure recordings directory exists
-        if not os.path.exists('recordings'):
+        if not os.path.exists('backend/recordings'):
             os.makedirs('recordings')
 
-        # Path to the alert sound file
-        self.alert_sound_path = os.path.join(os.path.dirname(__file__), 'alert.wav')
+        # To keep track of unknown face detection
+        self.last_face_status = None  # Can be 'unknown' or 'known'
+        
+        # Initialize tracking timestamps
+        self.unknown_start_time = None  # To track when an unknown face was first detected
 
     def load_dataset(self, dataset_path):
-        """
-        Load the dataset images for face matching.
-        """
+        """Load the dataset images for face matching."""
         dataset = {}
         for person_folder in os.listdir(dataset_path):
             person_path = os.path.join(dataset_path, person_folder)
@@ -68,9 +63,7 @@ class Camera:
         return dataset
 
     def match_face(self, face):
-        """
-        Match detected face with faces in the dataset.
-        """
+        """Match detected face with faces in the dataset."""
         for person_name, images in self.dataset.items():
             for ref_img in images:
                 try:
@@ -81,26 +74,6 @@ class Camera:
                     print(f"Error during face verification: {e}")
                     continue
         return 'Unknown'
-
-    def start_recording(self):
-        """Start recording the video."""
-        self.recording = True
-        self.video_file_path = f"recordings/{time.strftime('%Y%m%d-%H%M%S')}.mp4"
-        self.video_writer = ffmpeg.input('pipe:', format='rawvideo', pix_fmt='bgr24', s='640x480').output(
-            self.video_file_path, vcodec='libx264', pix_fmt='yuv420p'
-        ).overwrite_output().run_async(pipe_stdin=True)
-
-    def stop_recording(self):
-        """Stop recording the video and save the file."""
-        self.recording = False
-        if self.video_writer is not None:
-            self.video_writer.stdin.close()
-            self.video_writer.wait()
-            self.video_writer = None
-
-    def play_alert_sound(self):
-        """Play the alert sound."""
-        playsound(self.alert_sound_path)
 
     def detect_faces_ssd(self, frame):
         (h, w) = frame.shape[:2]
@@ -131,41 +104,40 @@ class Camera:
         # Detect faces using SSD
         faces = self.detect_faces_ssd(frame)
 
+        current_face_status = 'known'  # Default to 'known'
+
         for (x, y, w, h) in faces:
             face = frame[y:y+h, x:x+w]
 
             # Match the face in the dataset
             person_name = self.match_face(face)
 
-            # Draw a rectangle around the face and label it
+            # Draw a rectangle around the face
             color = (0, 255, 0) if person_name != 'Unknown' else (0, 0, 255)
             cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-            cv2.putText(frame, f"{person_name.upper()}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
-            if person_name == "Unknown" and not self.recording:
-                self.start_recording()
-                self.play_alert_sound()  # Play alert sound when an unknown face is detected
+            if person_name != "Unknown":
+                cv2.putText(frame, f"{person_name.upper()}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                current_face_status = 'known'
+                self.unknown_start_time = None  # Reset if a known face is detected
+            else:
+                current_face_status = 'unknown'
+                # Check if this is the first detection of an unknown face
+                if self.unknown_start_time is None:
+                    self.unknown_start_time = time.time()  # Start the timer
+                # Removed alert triggering logic
 
-        # Stop recording if no face is detected for some time
-        if not faces:
-            self.no_face_frames += 1
-            if self.no_face_frames >= self.max_no_face_frames and self.recording:
-                self.stop_recording()
-        else:
-            self.no_face_frames = 0
+        # Update the last face status
+        self.last_face_status = current_face_status
 
-        # Write the frame to the video file if recording
-        if self.recording and self.video_writer is not None:
-            self.video_writer.stdin.write(frame.tobytes())
+        # Free unused memory
+        gc.collect()
 
         return frame
 
     def release(self):
         """Release the camera and close any open windows."""
         self.cap.release()
-        if self.video_writer is not None:
-            self.video_writer.stdin.close()
-            self.video_writer.wait()
 
 # Create a singleton camera instance
 camera_instance = Camera("backend/dataset")

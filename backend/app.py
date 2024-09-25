@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, abort
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
@@ -11,7 +11,7 @@ from camera import start_monitoring
 from config import Config
 from db import db
 
-UPLOAD_FOLDER = 'images'  # Update this path to your images folder
+UPLOAD_FOLDER = 'dataset'  # Update this path to your dataset folder
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 logging.basicConfig(level=logging.DEBUG)
@@ -55,10 +55,9 @@ def create_app():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
 
-    # Route to handle image upload
-    @app.route('/upload_image', methods=['POST'])
+    @app.route('/upload_image/<person_name>', methods=['POST'])
     @jwt_required()
-    def upload_image():
+    def upload_image(person_name):
         current_user = get_jwt_identity()
         if current_user['role'] not in ['Administrator', 'Assistant Administrator']:
             return jsonify({'message': 'Unauthorized'}), 403
@@ -73,20 +72,53 @@ def create_app():
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
+            # Save the file in the dataset/person_name/ directory
+            person_folder = os.path.join(app.config['UPLOAD_FOLDER'], person_name)
+            if not os.path.exists(person_folder):
+                os.makedirs(person_folder)
+
+            file.save(os.path.join(person_folder, filename))
             return jsonify({'success': True, 'filename': filename}), 200
         
         return jsonify({'error': 'File upload failed'}), 500
     
     @app.route('/images', methods=['GET'])
     def list_images():
-        images_directory = os.path.join(app.root_path, 'images')
-        images = os.listdir(images_directory)
+        images = {}
+        dataset_directory = os.path.join(app.root_path, 'dataset')
+        
+        for person in os.listdir(dataset_directory):
+            person_folder = os.path.join(dataset_directory, person)
+            if os.path.isdir(person_folder):
+                images[person] = os.listdir(person_folder)
+        
         return jsonify(images)
 
     @app.route('/images/<filename>')
+    @jwt_required()  # Ensure the user is logged in
     def get_image(filename):
+        current_user = get_jwt_identity()
+        
+        # Define roles that are allowed to view images
+        allowed_roles = ['administrator', 'assistant_administrator', 'security_staff']
+
+        # Check if the user has the required role to access the image
+        if current_user['role'] not in allowed_roles:
+            return abort(403)  # Forbidden
+
+        # Ensure the filename is safe to prevent directory traversal attacks
+        if '..' in filename or filename.startswith('/'):
+            return abort(400)  # Bad request
+
+        # Define the path to the images directory
         images_directory = os.path.join(app.root_path, 'images')
+        
+        # Check if the file exists
+        if not os.path.isfile(os.path.join(images_directory, filename)):
+            return abort(404)  # File not found
+        
+        # Serve the image file if everything is valid
         return send_from_directory(images_directory, filename)
 
     return app
