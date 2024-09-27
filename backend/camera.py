@@ -40,11 +40,8 @@ class Camera:
 
         # Ensure recordings directory exists
         if not os.path.exists('backend/recordings'):
-            os.makedirs('recordings')
+            os.makedirs('backend/recordings')
 
-        # To keep track of unknown face detection
-        self.last_face_status = None  # Can be 'unknown' or 'known'
-        
         # Initialize tracking timestamps
         self.unknown_start_time = None  # To track when an unknown face was first detected
 
@@ -67,7 +64,14 @@ class Camera:
         for person_name, images in self.dataset.items():
             for ref_img in images:
                 try:
-                    result = DeepFace.verify(face, ref_img, model_name='VGG-Face', enforce_detection=False, detector_backend='skip')
+                    # Match face with a reference image from the dataset
+                    result = DeepFace.verify(
+                        face,
+                        ref_img,
+                        model_name='VGG-Face',
+                        enforce_detection=False,
+                        detector_backend='skip'  # Skip internal detection since faces are already cropped
+                    )
                     if result['verified']:
                         return person_name
                 except Exception as e:
@@ -104,8 +108,6 @@ class Camera:
         # Detect faces using SSD
         faces = self.detect_faces_ssd(frame)
 
-        current_face_status = 'known'  # Default to 'known'
-
         for (x, y, w, h) in faces:
             face = frame[y:y+h, x:x+w]
 
@@ -118,17 +120,6 @@ class Camera:
 
             if person_name != "Unknown":
                 cv2.putText(frame, f"{person_name.upper()}", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
-                current_face_status = 'known'
-                self.unknown_start_time = None  # Reset if a known face is detected
-            else:
-                current_face_status = 'unknown'
-                # Check if this is the first detection of an unknown face
-                if self.unknown_start_time is None:
-                    self.unknown_start_time = time.time()  # Start the timer
-                # Removed alert triggering logic
-
-        # Update the last face status
-        self.last_face_status = current_face_status
 
         # Free unused memory
         gc.collect()
