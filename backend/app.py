@@ -2,14 +2,17 @@ from flask import Flask, jsonify, request, send_from_directory, abort
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
 import os
 import logging
 import threading
-from werkzeug.utils import secure_filename
-from models import User
 from camera import start_monitoring
 from config import Config
 from db import db
+from models import User  # Ensure to import the User model
+from tasks import process_frame  # Import the Celery task
+from celery.result import AsyncResult  # To track the Celery task result
+import redis
 
 UPLOAD_FOLDER = 'dataset'  # Update this path to your dataset folder
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -32,6 +35,15 @@ def create_app():
     
     from routes.camera_routes import camera_bp
     app.register_blueprint(camera_bp)
+
+    # Create a connection to the Redis server
+    redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+    # Test the connection
+    try:
+        redis_client.ping()
+        logging.info("Connected to Redis successfully!")
+    except redis.ConnectionError:
+        logging.error("Could not connect to Redis.")
 
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
@@ -101,7 +113,7 @@ def create_app():
         current_user = get_jwt_identity()
         
         # Define roles that are allowed to view images
-        allowed_roles = ['administrator', 'assistant_administrator', 'security_staff']
+        allowed_roles = ['Administrator', 'Assistant Administrator', 'Security Staff']
 
         # Check if the user has the required role to access the image
         if current_user['role'] not in allowed_roles:
@@ -120,6 +132,67 @@ def create_app():
         
         # Serve the image file if everything is valid
         return send_from_directory(images_directory, filename)
+    
+    @app.route('/recognize-face', methods=['POST'])
+    @jwt_required()
+    def recognize_face():
+        current_user = get_jwt_identity()
+
+        # Check if the user has the correct role to perform face recognition
+        if current_user['role'] not in ['Administrator', 'Security Staff']:
+            return jsonify({'message': 'Unauthorized'}), 403
+
+        # Get the frame from the request (in this example, assuming the frame is sent as a file)
+        if 'frame' not in request.files:
+            return jsonify({'error': 'No frame provided'}), 400
+
+        file = request.files['frame']
+        
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            frame_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(frame_path)
+
+            # Send the frame to Celery for processing
+            task = process_frame.delay(frame_path)
+
+            # Return the task ID to the client
+            return jsonify({'task_id': task.id}), 202
+        else:
+            return jsonify({'error': 'Invalid file format'}), 400
+
+    # Unified task status endpoint
+    @app.route('/task-status/<task_id>', methods=['GET'])
+    @jwt_required()
+    def get_task_status(task_id):
+        current_user = get_jwt_identity()
+
+        # Check if the user has the correct role to view task status
+        if current_user['role'] not in ['Administrator', 'Security Staff']:
+            return jsonify({'message': 'Unauthorized'}), 403
+
+        # Retrieve task information using Celery's AsyncResult
+        task_result = AsyncResult(task_id)
+
+        if task_result.state == 'PENDING':
+            response = {
+                'state': task_result.state,
+                'status': 'Pending...'
+            }
+        elif task_result.state != 'FAILURE':
+            response = {
+                'state': task_result.state,
+                'status': task_result.info.get('status', ''),
+                'result': task_result.result  # You can also return the result if needed
+            }
+        else:
+            # Something went wrong with the task
+            response = {
+                'state': task_result.state,
+                'status': str(task_result.info),  # Error message from task
+            }
+        
+        return jsonify(response)
 
     return app
 
