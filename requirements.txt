@@ -38,8 +38,8 @@ libclang==18.1.1
 Markdown==3.7
 MarkupSafe==2.1.5
 mkl-service==2.4.0
-mkl_fft @ file:///C:/b/abs_f55mv94vyg/croot/mkl_fft_1725370278455/work
-mkl_random @ file:///C:/b/abs_21ydbzdu8d/croot/mkl_random_1725370276095/work
+mkl_fft==1.3.10
+mkl_random==1.2.7
 mtcnn==0.1.1
 mysqlclient==2.2.4
 numpy==1.26.4
