@@ -4,12 +4,18 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import os
 import logging
-import threading
 from werkzeug.utils import secure_filename
 from models import User
-from camera import start_monitoring
 from config import Config
 from db import db
+import cv2
+from flask_socketio import SocketIO  # Import SocketIO here
+import threading  # Import threading here
+from face_recognition import recognize_faces
+
+
+# Initialize SocketIO
+socketio = SocketIO(cors_allowed_origins="http://localhost:3000")
 
 UPLOAD_FOLDER = 'dataset'  # Update this path to your dataset folder
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -26,12 +32,10 @@ def create_app():
     CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
     db.init_app(app)
     jwt = JWTManager(app)
-    
+
+    # Register user routes
     from routes.user_routes import user_bp
     app.register_blueprint(user_bp)
-    
-    from routes.camera_routes import camera_bp
-    app.register_blueprint(camera_bp)
 
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
@@ -61,7 +65,7 @@ def create_app():
         current_user = get_jwt_identity()
         if current_user['role'] not in ['Administrator', 'Assistant Administrator']:
             return jsonify({'message': 'Unauthorized'}), 403
-        
+
         if 'image' not in request.files:
             return jsonify({'error': 'No file part'}), 400
 
@@ -72,8 +76,6 @@ def create_app():
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            
-            # Save the file in the dataset/person_name/ directory
             person_folder = os.path.join(app.config['UPLOAD_FOLDER'], person_name)
             if not os.path.exists(person_folder):
                 os.makedirs(person_folder)
@@ -82,7 +84,7 @@ def create_app():
             return jsonify({'success': True, 'filename': filename}), 200
         
         return jsonify({'error': 'File upload failed'}), 500
-    
+
     @app.route('/images', methods=['GET'])
     def list_images():
         images = {}
@@ -96,51 +98,80 @@ def create_app():
         return jsonify(images)
 
     @app.route('/images/<filename>')
-    @jwt_required()  # Ensure the user is logged in
+    @jwt_required()
     def get_image(filename):
         current_user = get_jwt_identity()
-        
-        # Define roles that are allowed to view images
         allowed_roles = ['administrator', 'assistant_administrator', 'security_staff']
 
-        # Check if the user has the required role to access the image
         if current_user['role'] not in allowed_roles:
             return abort(403)  # Forbidden
 
-        # Ensure the filename is safe to prevent directory traversal attacks
         if '..' in filename or filename.startswith('/'):
             return abort(400)  # Bad request
 
-        # Define the path to the images directory
         images_directory = os.path.join(app.root_path, 'images')
         
-        # Check if the file exists
         if not os.path.isfile(os.path.join(images_directory, filename)):
             return abort(404)  # File not found
         
-        # Serve the image file if everything is valid
         return send_from_directory(images_directory, filename)
+
+    # Camera streaming routes
+    camera_streams = {}
+
+    def start_camera(camera_ip):
+        cap = cv2.VideoCapture(int(camera_ip))
+        if not cap.isOpened():
+            print(f"Failed to open camera {camera_ip}")
+            return
+
+        while camera_ip in camera_streams:
+            ret, frame = cap.read()
+            if ret:
+                # Perform face recognition
+                recognized_faces = recognize_faces(frame)
+
+                for person_name, (x, y, w, h) in recognized_faces:
+                    color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+                    cv2.putText(frame, person_name.upper(), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+
+                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+                frame_bytes = buffer.tobytes()
+                socketio.emit('video_frame', {'camera_ip': camera_ip, 'frame': frame_bytes})
+            else:
+                break
+
+        cap.release()
+
+    @app.route('/open_camera/<camera_ip>', methods=['GET'])
+    @jwt_required()
+    def open_camera(camera_ip):
+        if camera_ip not in camera_streams:
+            thread = threading.Thread(target=start_camera, args=(camera_ip,))
+            thread.start()
+            camera_streams[camera_ip] = thread
+            return jsonify({'message': f'Camera {camera_ip} started'}), 200
+        return jsonify({'message': f'Camera {camera_ip} is already running'}), 400
+
+    @app.route('/close_camera/<camera_ip>', methods=['GET'])
+    @jwt_required()
+    def close_camera(camera_ip):
+        if camera_ip in camera_streams:
+            del camera_streams[camera_ip]
+            return jsonify({'message': f'Camera {camera_ip} stopped'}), 200
+        return jsonify({'message': f'Camera {camera_ip} is not running'}), 400
 
     return app
 
-def start_camera_monitoring():
-    """Ensure that only one camera monitoring thread is started."""
-    if not any(t.name == "CameraMonitor" and t.is_alive() for t in threading.enumerate()):
-        monitor_thread = threading.Thread(target=start_monitoring, name="CameraMonitor")
-        monitor_thread.daemon = True
-        monitor_thread.start()
-        logging.info("Started camera monitoring.")
-    else:
-        logging.info("Camera monitoring is already running.")
-
 def initialize():
     app = create_app()
+    socketio.init_app(app)
 
     with app.app_context():
         db.create_all()
         bcrypt = Bcrypt(app)
 
-        # Check if the user does not exist
         if db.session.query(User).filter_by(username='yasoob').count() < 1:
             hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
             new_user = User(
@@ -154,10 +185,8 @@ def initialize():
             db.session.add(new_user)
             db.session.commit()
 
-    start_camera_monitoring()
-
     try:
-        app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
     except KeyboardInterrupt:
         logging.info("Keyboard interrupt received. Stopping Flask application.")
     except Exception as e:
