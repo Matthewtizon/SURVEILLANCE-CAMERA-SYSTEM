@@ -12,23 +12,18 @@ import cv2
 from flask_socketio import SocketIO  # Import SocketIO here
 import threading  # Import threading here
 from face_recognition import recognize_faces
+from alert import check_alert  # Import the check_alert function
+
 
 
 # Initialize SocketIO
 socketio = SocketIO(cors_allowed_origins="http://localhost:3000")
 
-UPLOAD_FOLDER = 'dataset'  # Update this path to your dataset folder
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-
 logging.basicConfig(level=logging.DEBUG)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
     db.init_app(app)
     jwt = JWTManager(app)
@@ -59,63 +54,6 @@ def create_app():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
 
-    @app.route('/upload_image/<person_name>', methods=['POST'])
-    @jwt_required()
-    def upload_image(person_name):
-        current_user = get_jwt_identity()
-        if current_user['role'] not in ['Administrator', 'Assistant Administrator']:
-            return jsonify({'message': 'Unauthorized'}), 403
-
-        if 'image' not in request.files:
-            return jsonify({'error': 'No file part'}), 400
-
-        file = request.files['image']
-        
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
-
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            person_folder = os.path.join(app.config['UPLOAD_FOLDER'], person_name)
-            if not os.path.exists(person_folder):
-                os.makedirs(person_folder)
-
-            file.save(os.path.join(person_folder, filename))
-            return jsonify({'success': True, 'filename': filename}), 200
-        
-        return jsonify({'error': 'File upload failed'}), 500
-
-    @app.route('/images', methods=['GET'])
-    def list_images():
-        images = {}
-        dataset_directory = os.path.join(app.root_path, 'dataset')
-        
-        for person in os.listdir(dataset_directory):
-            person_folder = os.path.join(dataset_directory, person)
-            if os.path.isdir(person_folder):
-                images[person] = os.listdir(person_folder)
-        
-        return jsonify(images)
-
-    @app.route('/images/<filename>')
-    @jwt_required()
-    def get_image(filename):
-        current_user = get_jwt_identity()
-        allowed_roles = ['administrator', 'assistant_administrator', 'security_staff']
-
-        if current_user['role'] not in allowed_roles:
-            return abort(403)  # Forbidden
-
-        if '..' in filename or filename.startswith('/'):
-            return abort(400)  # Bad request
-
-        images_directory = os.path.join(app.root_path, 'images')
-        
-        if not os.path.isfile(os.path.join(images_directory, filename)):
-            return abort(404)  # File not found
-        
-        return send_from_directory(images_directory, filename)
-
     # Camera streaming routes
     camera_streams = {}
 
@@ -130,6 +68,9 @@ def create_app():
             if ret:
                 # Perform face recognition
                 recognized_faces = recognize_faces(frame)
+
+                # Process the recognized faces to monitor for unknown faces
+                check_alert(recognized_faces)
 
                 for person_name, (x, y, w, h) in recognized_faces:
                     color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
