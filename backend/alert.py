@@ -1,12 +1,13 @@
 import pygame
 import time
 import threading
+from notifications import send_notification  # Import send_notification here
 
 # Initialize Pygame for sound
 pygame.mixer.init()
 
 # Load alert sound
-alert_sound = pygame.mixer.Sound("alert.mp3")  # Ensure you have an alert.wav file in the same directory
+alert_sound = pygame.mixer.Sound("alert.mp3")  # Ensure you have an alert.mp3 file in the same directory
 
 # Variables to keep track of unknown face detection
 unknown_face_detected = False
@@ -30,9 +31,10 @@ def check_alert(faces):
             unknown_face_detected = True
             last_detection_time = current_time  # Start the timer when an unknown face is detected
 
-        # If the unknown face has been detected for more than the threshold and alert not yet triggered, play the alert
+        # If the unknown face has been detected for more than the threshold and alert not yet triggered
         if current_time - last_detection_time >= detection_threshold and not alert_triggered:
-            play_alert()
+            play_alert()  # Play the alert sound
+            send_notification("URL of the camera or relevant information")  # Send notification
             alert_triggered = True  # Mark the alert as triggered
     else:
         # Reset the detection status if no unknown faces are present

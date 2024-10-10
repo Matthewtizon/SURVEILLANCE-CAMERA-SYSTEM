@@ -1,5 +1,44 @@
 Some text here 
 
+
+Step 1: Manually Add Initialization to .bashrc
+Since conda init didn't make any changes, let's manually add the required lines to your .bashrc file.
+
+Open your .bashrc file:
+
+nano ~/.bashrc
+
+Add the following lines to the end of the file:
+
+# Initialize Conda
+. /home/johnmatthew/miniconda3/etc/profile.d/conda.sh
+
+Save and exit (in nano, press CTRL + X, then Y, then Enter).
+
+Step 2: Reload the Shell Configuration
+After making these changes, apply them by running:
+
+
+source ~/.bashrc
+Step 3: Verify Conda Initialization
+Now, check if conda is initialized by trying to activate your environment:
+
+
+conda activate capstone
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Steps 
 
 Go to anaconda prompt
@@ -7,7 +46,7 @@ Go to anaconda prompt
 1. conda create -n <name> python=3.10
 2. conda activate <name>
 3. conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0
-4. python -m pip install "tensorflow=2.10"
+4. python -m pip install "tensorflow==2.10"
 5. conda install numpy==1.26.4
 6. python
 7. ** Test GPU **

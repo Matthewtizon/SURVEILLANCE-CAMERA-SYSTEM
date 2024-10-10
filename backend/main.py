@@ -26,7 +26,7 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 # Path to dataset
-dataset_path = 'backend/dataset'
+dataset_path = 'dataset'
 
 # Load dataset images
 def load_dataset(dataset_path):
