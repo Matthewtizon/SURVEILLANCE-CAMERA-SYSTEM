@@ -14,6 +14,7 @@ import threading  # Import threading here
 from face_recognition import recognize_faces
 from alert import check_alert  # Import the check_alert function
 import datetime
+from storage import handle_detection, list_videos_in_date_range
 
 
 # Initialize the directory for saving recordings
@@ -24,20 +25,25 @@ if not os.path.exists(RECORDINGS_DIR):
 
 
 # Initialize SocketIO
-socketio = SocketIO(cors_allowed_origins="http://localhost:3000")
+socketio = SocketIO(cors_allowed_origins="http://10.242.104.90:3000")
 
 logging.basicConfig(level=logging.DEBUG)
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
+    CORS(app, resources={r"/*": {"origins": "http://10.242.104.90:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
     db.init_app(app)
     jwt = JWTManager(app)
 
     # Register user routes
     from routes.user_routes import user_bp
     app.register_blueprint(user_bp)
+
+    @app.route('/', methods=['GET'])
+    def home():
+        return jsonify({'message': 'Welcome to the Flask server!'}), 200
+
 
     @app.route('/admin-dashboard', methods=['GET'])
     @jwt_required()
@@ -54,6 +60,19 @@ def create_app():
         if current_user['role'] != 'Security Staff':
             return jsonify({'message': 'Unauthorized'}), 403
         return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
+    
+    @app.route('/get_recorded_videos', methods=['GET'])
+    @jwt_required()
+    def get_recorded_videos():
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        if not start_date or not end_date:
+            return jsonify({"message": "Missing date range"}), 400
+
+        videos = list_videos_in_date_range(start_date, end_date)
+        return jsonify(videos), 200
+
 
     @app.route('/protected', methods=['GET'])
     @jwt_required()
@@ -113,6 +132,7 @@ def create_app():
                         # Stop recording and release the writer
                         if out:
                             out.release()
+                            handle_detection(current_recording_name)
                             out = None
                             recording = False
                             print(f"Recording stopped. Video saved: {current_recording_name}")

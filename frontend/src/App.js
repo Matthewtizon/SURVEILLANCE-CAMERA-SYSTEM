@@ -9,6 +9,8 @@ import SecurityDashboard from './components/SecurityDashboard';
 import CameraStream from './components/CameraStream';
 import UserManagement from './components/UserManagement';
 import ProfileManagement from './components/ProfileManagement';
+import RecordedVideo from './components/RecordedVideo';
+
 
 const App = () => {
     const [role, setRole] = useState(null);
@@ -17,7 +19,7 @@ const App = () => {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
-            axios.get('http://localhost:5000/protected', {
+            axios.get('http://10.242.104.90:5000/protected', {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(response => {
                 setRole(response.data.logged_in_as.role);
@@ -45,6 +47,7 @@ const App = () => {
             <Route path="/camera-stream" element={role ? <CameraStream /> : <Navigate to="/login" />} />
             <Route path="/user-management" element={role ? <UserManagement /> : <Navigate to="/login" />} />
             <Route path="/profile" element={role ? <ProfileManagement /> : <Navigate to="/login" />} />
+            <Route path="/recorded-videos" element={role ? <RecordedVideo /> : <Navigate to="/login" />} />
             <Route path="/" element={<Navigate to={role ? (role === 'Administrator' ? '/admin-dashboard' : '/security-dashboard') : '/login'} />} />
         </Routes>
     );

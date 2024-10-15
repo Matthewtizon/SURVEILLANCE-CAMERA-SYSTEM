@@ -7,6 +7,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import VideocamIcon from '@mui/icons-material/Videocam';
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary'; // Import icon for recorded video
 import { styled } from '@mui/system';
 
 const drawerWidth = 240;
@@ -94,6 +95,12 @@ const Sidebar = ({ isOpen, toggleSidebar, role }) => {
                         <VideocamIcon />
                     </ListItemIcon>
                     {isOpen && <ListItemText primary="Camera Stream" />}
+                </ListItem>
+                <ListItem button component={Link} to="/recorded-videos">
+                    <ListItemIcon>
+                        <VideoLibraryIcon /> {/* Icon for recorded videos */}
+                    </ListItemIcon>
+                    {isOpen && <ListItemText primary="Recorded Videos" />}
                 </ListItem>
             </List>
         </CustomDrawer>

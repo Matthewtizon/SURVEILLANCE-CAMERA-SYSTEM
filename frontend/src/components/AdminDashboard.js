@@ -23,7 +23,7 @@ const AdminDashboard = () => {
             }
 
             try {
-                const response = await axios.get('http://localhost:5000/protected', {
+                const response = await axios.get('http://10.242.104.90:5000/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setUsername(response.data.logged_in_as.username);

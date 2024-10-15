@@ -13,7 +13,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token'); // Assume token is stored in localStorage
-            const response = await axios.post('http://localhost:5000/register', {
+            const response = await axios.post('http://10.242.104.90:5000/register', {
                 username,
                 password,
                 role
