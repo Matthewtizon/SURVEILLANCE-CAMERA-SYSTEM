@@ -182,6 +182,18 @@ def create_app():
 
     return app
 
+import signal
+from gevent.pywsgi import WSGIServer
+from gevent import monkey
+
+# Declare http_server as a global variable
+http_server = None
+
+def signal_handler(signum, frame):
+    logging.info("Signal received. Stopping the server...")
+    http_server.stop()  # Stop the Gevent server
+    exit(0)  # Exit the program
+
 def initialize():
     app = create_app()
     socketio.init_app(app)
@@ -203,12 +215,16 @@ def initialize():
             db.session.add(new_user)
             db.session.commit()
 
+    # Register the signal handler for SIGINT (Ctrl+C)
+    signal.signal(signal.SIGINT, signal_handler)
+
     try:
-        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
-    except KeyboardInterrupt:
-        logging.info("Keyboard interrupt received. Stopping Flask application.")
+        http_server = WSGIServer(('0.0.0.0', 5000), app)
+        logging.info("Server is running on http://0.0.0.0:5000")
+        http_server.serve_forever()
     except Exception as e:
         logging.error(f"Unexpected error occurred: {e}")
 
 if __name__ == '__main__':
     initialize()
+
