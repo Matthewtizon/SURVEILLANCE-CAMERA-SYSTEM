@@ -11,7 +11,9 @@ const CameraStream = () => {
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isCameraOpen, setIsCameraOpen] = useState({});
-    const socket = io('http://10.242.104.90:5000');
+    const socket = io('http://10.242.104.90:5000', {
+        transports: ['websocket'],
+    });
 
     useEffect(() => {
         const fetchUserData = async () => {

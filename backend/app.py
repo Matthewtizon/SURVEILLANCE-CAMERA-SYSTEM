@@ -25,14 +25,14 @@ if not os.path.exists(RECORDINGS_DIR):
 
 
 # Initialize SocketIO
-socketio = SocketIO(cors_allowed_origins="http://10.242.104.90:3000")
+socketio = SocketIO(cors_allowed_origins=["http://10.242.104.90:3000", "http://localhost", "http://10.242.104.90"])
 
 logging.basicConfig(level=logging.DEBUG)
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    CORS(app, resources={r"/*": {"origins": "http://10.242.104.90:3000"}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
+    CORS(app, resources={r"/*": {"origins": ["http://10.242.104.90:300", "http://localhost", "http://10.242.104.90" ]}}, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "OPTIONS", "DELETE"])
     db.init_app(app)
     jwt = JWTManager(app)
 
