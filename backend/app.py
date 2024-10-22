@@ -36,6 +36,13 @@ def create_app():
     db.init_app(app)
     jwt = JWTManager(app)
 
+    @jwt.user_identity_loader
+    def user_identity_lookup(user):
+        if isinstance(user, dict):
+            # If user is a dict, return it directly
+            return user
+        return {'username': user.username, 'role': user.role, 'device_token': user.device_token}  # Add device token here
+
     # Register user routes
     from routes.user_routes import user_bp
     app.register_blueprint(user_bp)
@@ -84,7 +91,7 @@ def create_app():
     camera_streams = {}
 
     
-    def start_camera(camera_ip):
+    def start_camera(camera_ip, device_token):
         # Add variables to manage recording
         recording = False
         non_detected_counter = 0
@@ -143,7 +150,7 @@ def create_app():
                     out.write(frame)
 
                 # Process the recognized faces to monitor for unknown faces
-                check_alert(recognized_faces)
+                check_alert(recognized_faces, device_token)
 
                 for person_name, (x, y, w, h) in recognized_faces:
                     color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
@@ -165,8 +172,18 @@ def create_app():
     @app.route('/open_camera/<camera_ip>', methods=['GET'])
     @jwt_required()
     def open_camera(camera_ip):
+        current_user = get_jwt_identity()
+        logging.info(f"Current user: {current_user}")  # Log the user info
+
+        # Access device_token safely
+        device_token = current_user.get('device_token')  # Use .get() to avoid KeyError
+
+        if not device_token:
+            logging.error("Device token is missing.")
+            return jsonify({'message': 'Device token is missing'}), 400
+        
         if camera_ip not in camera_streams:
-            thread = threading.Thread(target=start_camera, args=(camera_ip,))
+            thread = threading.Thread(target=start_camera, args=(camera_ip, device_token))
             thread.start()
             camera_streams[camera_ip] = thread
             return jsonify({'message': f'Camera {camera_ip} started'}), 200

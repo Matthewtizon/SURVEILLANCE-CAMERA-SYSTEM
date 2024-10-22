@@ -1,23 +1,24 @@
-from twilio.rest import Client
-import os
-from dotenv import load_dotenv
-from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, messaging
+import logging
 
-load_dotenv()
+# Initialize logging
+logging.basicConfig(level=logging.INFO)
 
-ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+# Initialize Firebase Admin SDK with your service account
+cred = credentials.Certificate("surveillance-camera-push-notif.json")
+firebase_admin.initialize_app(cred)
 
-SENDER = os.getenv("TWILIO_SEND_NUMBER")
-RECEIVER = os.getenv("TWILIO_RECEIVE_NUMBER")
-
-client = Client(ACCOUNT_SID, AUTH_TOKEN)
-
-def send_notification(url):
-    now = datetime.now()
-    formatted_now = now.strftime("%d/%m/%y %H:%M:%S")
-    client.messages.create(
-        body=f"Unknown face detected @{formatted_now}",
-        from_=SENDER,  # Your Twilio phone number
-        to=RECEIVER     # Recipient phone number
+def send_push_notification(token, title, body):
+    message = messaging.Message(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        token=token,
     )
+    try:
+        response = messaging.send(message)
+        logging.info('Successfully sent message: %s', response)
+    except Exception as e:
+        logging.error('Error sending message: %s', e)

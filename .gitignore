@@ -25,7 +25,9 @@ yarn-error.log*
 # Ignore virtual environment directory
 /venv
 
-
+surveillance-camera-push-notif.json
 credentials.json
 /__pycache__
 .env
+
+

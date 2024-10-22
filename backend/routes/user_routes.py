@@ -4,6 +4,10 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from models import User
 from db import db
+import uuid
+
+def generate_device_token():
+    return str(uuid.uuid4())  # Generates a new UUID
 
 bcrypt = Bcrypt()
 
@@ -78,14 +82,25 @@ def login():
 
     user = User.query.filter_by(username=data['username']).first()
     if user and bcrypt.check_password_hash(user.password, data['password']):
-        access_token = create_access_token(identity={'username': user.username, 'role': user.role})
+        # Update device_token if it's not already set
+        if not user.device_token:
+            user.device_token = generate_device_token()  # Create or fetch a device token
+            db.session.commit()  # Save the token to the database
+
+        access_token = create_access_token(identity={
+            'username': user.username,
+            'role': user.role,
+            'device_token': user.device_token  # Include the device token
+        })
         user_info = {
             'username': user.username,
             'role': user.role,
+            'device_token': user.device_token  # Include device_token in the user info
         }
-        return jsonify(access_token=access_token, user_info=user_info)
-    
+        return jsonify(access_token=access_token, user_info=user_info), 200
+
     return jsonify({'message': 'Invalid credentials'}), 401
+
 
 @user_bp.route('/profile', methods=['GET'])
 @jwt_required()
