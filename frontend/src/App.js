@@ -10,7 +10,7 @@ import CameraStream from './components/CameraStream';
 import UserManagement from './components/UserManagement';
 import ProfileManagement from './components/ProfileManagement';
 import RecordedVideo from './components/RecordedVideo';
-import { requestForToken, onMessageListener } from './firebase';
+import { requestFCMToken, onMessageListener } from './firebase';
 
 const App = () => {
     const [role, setRole] = useState(null);
@@ -35,9 +35,23 @@ const App = () => {
             setLoading(false);
         }
 
-        // Request FCM token
-        requestForToken(setTokenFound);
+        // Request FCM token and handle token state
+        requestFCMToken()
+            .then((fcmToken) => {
+                if (fcmToken) {
+                    console.log("FCM Token received:", fcmToken);
+                    setTokenFound(true);  // Token successfully found
+                } else {
+                    console.log("FCM Token not found.");
+                    setTokenFound(false);
+                }
+            })
+            .catch((err) => {
+                console.log("FCM Token error:", err);
+                setTokenFound(false);
+            });
 
+        // Listen for FCM messages
         const unsubscribe = onMessageListener()
             .then((payload) => {
                 console.log("Message received: ", payload);
@@ -61,6 +75,7 @@ const App = () => {
 
     return (
         <div>
+            {/* Display notification */}
             {notification && (
                 <div style={{ background: 'lightyellow', padding: '10px', margin: '10px 0' }}>
                     <h4>New Notification:</h4>
@@ -70,6 +85,16 @@ const App = () => {
                 </div>
             )}
 
+            {/* Display FCM token status */}
+            <div style={{ margin: '10px 0' }}>
+                {isTokenFound ? (
+                    <p>FCM Token successfully retrieved.</p>
+                ) : (
+                    <p>No FCM Token found. Notifications might not work.</p>
+                )}
+            </div>
+
+            {/* Routes configuration */}
             <Routes>
                 <Route path="/login" element={<Login setRole={setRole} />} />
                 <Route path="/register" element={role === 'Administrator' ? <Register /> : <Navigate to="/login" />} />

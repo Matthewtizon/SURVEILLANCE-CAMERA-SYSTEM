@@ -1,7 +1,7 @@
 import pygame
 import time
 import threading
-from notifications import send_push_notification  # Import send_notification here
+from notifications import send_notification  # Import send_notification here
 
 # Initialize Pygame for sound
 pygame.mixer.init()
@@ -34,7 +34,7 @@ def check_alert(faces, device_token):
         # If the unknown face has been detected for more than the threshold and alert not yet triggered
         if current_time - last_detection_time >= detection_threshold and not alert_triggered:
             play_alert()  # Play the alert sound
-            send_push_notification(device_token, "Unknown Face Detected", "An intruder was detected.")
+            send_notification(device_token, "An intruder was detected.")
             alert_triggered = True  # Mark the alert as triggered
     else:
         # Reset the detection status if no unknown faces are present

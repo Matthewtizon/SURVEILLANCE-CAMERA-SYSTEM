@@ -1,14 +1,25 @@
-// src/components/Login.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Box, Button, Container, TextField, Typography } from '@mui/material';
+import { requestFCMToken } from '../firebase'; // Import the function to get FCM token
 
 const Login = ({ setRole }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const navigate = useNavigate();
+    const [deviceToken, setDeviceToken] = useState(null);
+
+    useEffect(() => {
+        // Request FCM token on component mount
+        const getToken = async () => {
+            const token = await requestFCMToken();
+            setDeviceToken(token); // Store the FCM token in the state
+        };
+
+        getToken();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -16,6 +27,7 @@ const Login = ({ setRole }) => {
             const response = await axios.post('http://10.242.104.90:5000/login', {
                 username,
                 password,
+                device_token: deviceToken, // Include the FCM token
             }, {
                 headers: {
                     'Content-Type': 'application/json'

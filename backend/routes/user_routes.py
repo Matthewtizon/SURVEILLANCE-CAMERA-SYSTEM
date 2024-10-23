@@ -6,8 +6,7 @@ from models import User
 from db import db
 import uuid
 
-def generate_device_token():
-    return str(uuid.uuid4())  # Generates a new UUID
+
 
 bcrypt = Bcrypt()
 
@@ -83,19 +82,19 @@ def login():
     user = User.query.filter_by(username=data['username']).first()
     if user and bcrypt.check_password_hash(user.password, data['password']):
         # Update device_token if it's not already set
-        if not user.device_token:
-            user.device_token = generate_device_token()  # Create or fetch a device token
-            db.session.commit()  # Save the token to the database
+        if 'device_token' in data and data['device_token']:
+            user.device_token = data['device_token']
+            db.session.commit()
 
         access_token = create_access_token(identity={
             'username': user.username,
             'role': user.role,
-            'device_token': user.device_token  # Include the device token
+            'device_token': user.device_token
         })
         user_info = {
             'username': user.username,
             'role': user.role,
-            'device_token': user.device_token  # Include device_token in the user info
+            'device_token': user.device_token
         }
         return jsonify(access_token=access_token, user_info=user_info), 200
 

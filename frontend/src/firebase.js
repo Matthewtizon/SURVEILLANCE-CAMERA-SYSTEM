@@ -15,24 +15,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-export const requestForToken = (setTokenFound) => {
-  return getToken(messaging, { vapidKey: "YOUR_VAPID_KEY" })
-    .then((currentToken) => {
+export const requestFCMToken = async () => {
+  try {
+      const currentToken = await getToken(messaging, { vapidKey: 'BD75H7_tokHEaXxUWPAHWc62M3h0WGWNBdw2mlseIuZeSsKGp1oWkkNVkfwpW8dZtOqVlo0kZZCCHVvaRxKzSW0' });
       if (currentToken) {
-        console.log("FCM Token:", currentToken);
-        setTokenFound(true);
-        // Store the token on your backend server for sending notifications
+          console.log('FCM Token:', currentToken);
+          return currentToken; // Return the token for use in the login
       } else {
-        console.log("No registration token available.");
-        setTokenFound(false);
+          console.log('No registration token available.');
+          return null;
       }
-    })
-    .catch((err) => {
-      console.log("An error occurred while retrieving token. ", err);
-      setTokenFound(false);
-    });
+  } catch (error) {
+      console.error('An error occurred while retrieving token.', error);
+      return null;
+  }
 };
 
+
+// Function to listen for messages when the app is in the foreground
 export const onMessageListener = () =>
   new Promise((resolve) => {
     onMessage(messaging, (payload) => {
