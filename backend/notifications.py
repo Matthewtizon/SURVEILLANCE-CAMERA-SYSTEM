@@ -1,23 +1,28 @@
-from twilio.rest import Client
+import boto3
 import os
 from dotenv import load_dotenv
 from datetime import datetime
 
 load_dotenv()
 
-ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+# Initialize the Boto3 SNS client
+sns_client = boto3.client(
+    'sns',
+    aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
+    aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
+    region_name=os.getenv("AWS_REGION")  # e.g., 'us-west-2'
+)
 
-SENDER = os.getenv("TWILIO_SEND_NUMBER")
-RECEIVER = os.getenv("TWILIO_RECEIVE_NUMBER")
-
-client = Client(ACCOUNT_SID, AUTH_TOKEN)
+SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")  # Add your SNS topic ARN here
 
 def send_notification(url):
     now = datetime.now()
     formatted_now = now.strftime("%d/%m/%y %H:%M:%S")
-    client.messages.create(
-        body=f"Unknown face detected @{formatted_now}",
-        from_=SENDER,  # Your Twilio phone number
-        to=RECEIVER     # Recipient phone number
+    message = f"Unknown face detected @{formatted_now} - {url}"
+
+    response = sns_client.publish(
+        TopicArn=SNS_TOPIC_ARN,
+        Message=message,
+        Subject="Alert: Unknown Face Detected"
     )
+    print("Notification sent:", response)
