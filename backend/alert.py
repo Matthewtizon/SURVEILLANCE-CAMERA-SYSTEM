@@ -2,6 +2,7 @@ import pygame
 import time
 import threading
 from notifications import send_notification  # Import send_notification here
+from config import sms_notifications_enabled
 
 # Initialize Pygame for sound
 pygame.mixer.init()
@@ -14,6 +15,12 @@ unknown_face_detected = False
 last_detection_time = 0
 detection_threshold = 2  # Time in seconds for how long the face should be on screen to trigger the alert
 alert_triggered = False  # Flag to track if the alert has already been triggered
+sms_notifications_enabled = False  # New variable to control SMS notifications
+
+# Function to toggle SMS notifications
+def toggle_sms_notifications(status):
+    global sms_notifications_enabled
+    sms_notifications_enabled = status
 
 # Function to play the alert sound
 def play_alert():
@@ -34,7 +41,8 @@ def check_alert(faces):
         # If the unknown face has been detected for more than the threshold and alert not yet triggered
         if current_time - last_detection_time >= detection_threshold and not alert_triggered:
             play_alert()  # Play the alert sound
-            send_notification("URL of the camera or relevant information")  # Send notification
+            if sms_notifications_enabled:
+                send_notification("URL of the camera or relevant information")  # Send notification
             alert_triggered = True  # Mark the alert as triggered
     else:
         # Reset the detection status if no unknown faces are present

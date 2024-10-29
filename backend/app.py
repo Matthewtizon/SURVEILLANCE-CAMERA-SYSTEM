@@ -15,7 +15,7 @@ from face_recognition import recognize_faces
 from alert import check_alert  # Import the check_alert function
 import datetime
 from storage import handle_detection, list_videos_in_date_range
-
+from config import sms_notifications_enabled
 
 # Initialize the directory for saving recordings
 RECORDINGS_DIR = os.path.join(os.getcwd(), "recordings")
@@ -179,6 +179,14 @@ def create_app():
             del camera_streams[camera_ip]
             return jsonify({'message': f'Camera {camera_ip} stopped'}), 200
         return jsonify({'message': f'Camera {camera_ip} is not running'}), 400
+    
+    @app.route('/toggle_sms_notifications', methods=['POST'])
+    @jwt_required()
+    def toggle_sms_notifications():
+        global sms_notifications_enabled
+        data = request.get_json()
+        sms_notifications_enabled = data.get('enabled', False)
+        return jsonify({'sms_notifications_enabled': sms_notifications_enabled}), 200
 
     return app
 

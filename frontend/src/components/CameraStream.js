@@ -11,6 +11,7 @@ const CameraStream = () => {
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isCameraOpen, setIsCameraOpen] = useState({});
+    const [smsEnabled, setSmsEnabled] = useState(false);
     const socket = io('http://10.242.104.90:5000', {
         transports: ['websocket'],
     });
@@ -86,6 +87,19 @@ const CameraStream = () => {
         }
     };
 
+    const toggleSmsNotifications = async () => {
+        try {
+            const response = await axios.post(
+                'http://localhost:5000/toggle_sms_notifications',
+                { enabled: !smsEnabled },
+                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            );
+            setSmsEnabled(response.data.sms_notifications_enabled);
+        } catch (error) {
+            console.error("Error toggling SMS notifications", error);
+        }
+    };
+
     return (
         <Box display="flex">
             <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
@@ -96,6 +110,12 @@ const CameraStream = () => {
                     <Box sx={{ mt: 4 }}>
                         <Typography variant="h6">Welcome to the Camera Dashboard</Typography>
                         <Typography variant="body1">Use the sidebar to navigate.</Typography>
+                        <Box>
+                            <Button onClick={toggleSmsNotifications}>
+                                {smsEnabled ? 'Disable SMS Notifications' : 'Enable SMS Notifications'}                                
+                            </Button>
+                        </Box>
+
                         {/* Replace with your camera IPs */}
                         {[0, 1, 2].map((cameraIp) => (
                             <Box key={cameraIp} sx={{ mb: 2 }}>
