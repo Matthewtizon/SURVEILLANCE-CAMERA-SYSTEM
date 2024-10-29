@@ -113,6 +113,7 @@ const CameraStream = () => {
                 </Container>
             </Box>
         </Box>
+        
     );
 };
 
