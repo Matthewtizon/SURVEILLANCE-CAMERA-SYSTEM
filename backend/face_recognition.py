@@ -37,9 +37,11 @@ def load_dataset():
                     dataset[person_folder].append(img)
     return dataset
 
+
+dataset = load_dataset()
+
 # Match face with dataset
 def match_face(face):
-    dataset = load_dataset()
     for person_name, images in dataset.items():
         for ref_img in images:
             try:
