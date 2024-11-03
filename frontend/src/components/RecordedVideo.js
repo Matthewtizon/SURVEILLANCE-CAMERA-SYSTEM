@@ -1,4 +1,3 @@
-// src/components/RecordedVideo.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -15,10 +14,9 @@ const RecordedVideo = () => {
     const [videos, setVideos] = useState([]);
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [loadingVideos, setLoadingVideos] = useState(false); // Separate state for loading videos
+    const [loadingVideos, setLoadingVideos] = useState(false);
     const navigate = useNavigate();
 
-    // Fetch user data on component mount
     useEffect(() => {
         const fetchUserData = async () => {
             const token = localStorage.getItem('token');
@@ -44,7 +42,6 @@ const RecordedVideo = () => {
         fetchUserData();
     }, [navigate]);
 
-    // Function to fetch videos based on the selected date range
     const fetchVideos = async () => {
         setLoadingVideos(true);
         const token = localStorage.getItem('token');
@@ -54,9 +51,28 @@ const RecordedVideo = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setVideos(response.data);
-            setLoadingVideos(false);
         } catch (error) {
             console.error('Error fetching videos:', error);
+        } finally {
+            setLoadingVideos(false);
+        }
+    };
+
+    const deleteVideo = async (url) => {
+        setLoadingVideos(true);
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`/delete_video?url=${encodeURIComponent(url)}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',  // Explicitly set Content-Type
+                }
+            });
+            // Refresh the video list after deletion
+            fetchVideos();
+        } catch (error) {
+            console.error("Error deleting video:", error);
+        } finally {
             setLoadingVideos(false);
         }
     };
@@ -82,8 +98,7 @@ const RecordedVideo = () => {
                     <Typography variant="h4" gutterBottom>
                         Recorded Videos
                     </Typography>
-                    
-                    {/* Date range selection */}
+
                     <Box mb={3} display="flex" alignItems="center" gap={2}>
                         <TextField
                             label="Start Date"
@@ -108,7 +123,6 @@ const RecordedVideo = () => {
                         </Button>
                     </Box>
 
-                    {/* Show loading spinner while fetching videos */}
                     {loadingVideos ? (
                         <Box textAlign="center">
                             <CircularProgress />
@@ -119,19 +133,19 @@ const RecordedVideo = () => {
                             {videos.length === 0 ? (
                                 <Typography>No videos found for the selected date range.</Typography>
                             ) : (
-                                videos.map((video, index) => (
-                                    <Grid item xs={12} sm={6} md={4} key={index}>
+                                videos.map((video) => (
+                                    <Grid item xs={12} sm={6} md={4} key={video.url}>
                                         <Card>
                                             <CardMedia
                                                 component="video"
                                                 controls
                                                 src={video.url}
-                                                title={new Date(video.date).toLocaleString()}
                                             />
                                             <CardContent>
-                                                <Typography variant="body1">
-                                                    {new Date(video.date).toLocaleString()}
-                                                </Typography>
+                                                <Typography variant="h6">{new Date(video.date).toLocaleString()}</Typography>
+                                                <Button variant="contained" color="secondary" onClick={() => deleteVideo(video.url)}>
+                                                    Delete
+                                                </Button>
                                             </CardContent>
                                         </Card>
                                     </Grid>

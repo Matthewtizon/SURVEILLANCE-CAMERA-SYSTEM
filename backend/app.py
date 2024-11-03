@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import os
 import logging
 from werkzeug.utils import secure_filename
-from models import User
+from models import User, VideoDeletionAudit
 from config import Config
 from db import db
 import cv2
@@ -14,7 +14,8 @@ import threading  # Import threading here
 from face_recognition import recognize_faces
 from alert import check_alert  # Import the check_alert function
 import datetime
-from storage import handle_detection, list_videos_in_date_range
+from storage import handle_detection, list_videos_in_date_range, bucket
+from urllib.parse import unquote
 
 
 # Initialize the directory for saving recordings
@@ -68,10 +69,84 @@ def create_app():
         end_date = request.args.get('end_date')
 
         if not start_date or not end_date:
-            return jsonify({"message": "Missing date range"}), 400
+            today = datetime.datetime.now()
+            start_date = today.strftime('%Y-%m-%d')  # Start of today
+            end_date = today.strftime('%Y-%m-%d')    # End of today
+
+        # Validate date formats
+        try:
+            datetime.datetime.strptime(start_date, '%Y-%m-%d')
+            datetime.datetime.strptime(end_date, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Please use YYYY-MM-DD."}), 400
 
         videos = list_videos_in_date_range(start_date, end_date)
+        
+        if not videos:
+            return jsonify({"message": "No videos found for the selected date range."}), 404
+
         return jsonify(videos), 200
+    
+    @app.route('/delete_video', methods=['DELETE'])
+    @jwt_required()
+    def delete_video():
+        video_url = request.args.get('url')
+
+        if not video_url:
+            return jsonify({"error": "Video URL is required"}), 400
+
+        try:
+            # Decode the URL
+            decoded_url = unquote(video_url)
+            
+            # Extract the blob name from the decoded URL
+            blob_name = decoded_url.split('/')[-1]
+
+            # Delete the video from the bucket
+            blob = bucket.blob(blob_name)
+            
+            # Check if the blob exists before trying to delete it
+            if not blob.exists():
+                return jsonify({"error": f"Video {blob_name} does not exist."}), 404
+
+            # Delete the video
+            blob.delete()
+            
+            # Log the deletion in the audit trail
+            deleted_by = get_jwt_identity()  # Get the user identity from the JWT
+            audit_entry = VideoDeletionAudit(video_name=blob_name, deleted_by=deleted_by)
+            db.session.add(audit_entry)
+            db.session.commit()
+
+            return jsonify({"message": f"Video {blob_name} deleted successfully."}), 200
+            
+        except Exception as e:
+            logging.error(f"Error deleting video: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+        
+
+    @app.route('/video_audit_trail', methods=['GET'])
+    @jwt_required()  # Ensure the user is authenticated
+    def get_audit_trail():
+        try:
+            # Query the audit trail data from the database
+            audit_trails = VideoDeletionAudit.query.all()
+            
+            # Format the results
+            audit_data = [
+                {
+                    "id": audit.id,
+                    "video_name": audit.video_name,
+                    "deleted_by": audit.deleted_by,
+                    "deleted_at": audit.deleted_at.isoformat()  # Convert to ISO format
+                }
+                for audit in audit_trails
+            ]
+
+            return jsonify(audit_data), 200
+        except Exception as e:
+            logging.error(f"Error fetching audit trail: {str(e)}")
+            return jsonify({"error": "Unable to fetch audit trail data."}), 500
 
 
     @app.route('/protected', methods=['GET'])

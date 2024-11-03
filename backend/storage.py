@@ -57,3 +57,4 @@ def list_videos_in_date_range(start_date, end_date, extension=".mp4"):
                 matching_files.append({"url": blob.public_url, "date": blob.time_created})
 
     return matching_files
+

@@ -7,6 +7,9 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('');
+    const [full_name, setFullname ] = useState('');
+    const [email, setEmail ] = useState('');
+    const [phone_number, setPhonenumber ] = useState('');
     const [message, setMessage] = useState('');
 
     const handleSubmit = async (e) => {
@@ -16,7 +19,10 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
             const response = await axios.post('http://10.242.104.90:5000/register', {
                 username,
                 password,
-                role
+                role,
+                full_name,
+                email,
+                phone_number
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -28,6 +34,9 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
             setUsername(''); // Clear the form fields
             setPassword('');
             setRole(''); // Reset role to default
+            setFullname('');
+            setEmail('');
+            setPhonenumber('');
             onSuccess(); // Hide the register form on success
         } catch (error) {
             console.error('Error registering user:', error);
@@ -67,6 +76,42 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                         autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="full_name"
+                        label="full_name"
+                        type="full_name"
+                        id="full_name"
+                        autoComplete="full_name"
+                        value={full_name}
+                        onChange={(e) => setFullname(e.target.value)}
+                    />
+                    <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="email"
+                        label="email"
+                        type="email"
+                        id="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <TextField
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="phone_number"
+                        label="phone_number"
+                        type="phone_number"
+                        id="phone_number"
+                        autoComplete="phone_number"
+                        value={phone_number}
+                        onChange={(e) => setPhonenumber(e.target.value)}
                     />
                     <FormControl fullWidth margin="normal">
                         <InputLabel id="role-label">Role</InputLabel>

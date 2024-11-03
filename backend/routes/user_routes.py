@@ -28,7 +28,10 @@ def register():
     new_user = User(
         username=data['username'],
         password=hashed_password,
-        role=data['role']
+        role=data['role'],
+        full_name=data['full_name'],
+        email=data['email'],
+        phone_number=data['phone_number']
     )
     db.session.add(new_user)
     db.session.commit()
