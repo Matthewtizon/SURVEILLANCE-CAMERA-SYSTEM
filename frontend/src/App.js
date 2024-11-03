@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -16,9 +16,26 @@ import AuditTrail from './components/AuditTrail';
 const App = () => {
     const [role, setRole] = useState(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+
+        // Axios interceptor to catch expired token errors
+        const interceptor = axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response && error.response.status === 401) {
+                    alert("Your session is out.");
+                    localStorage.removeItem('token');
+                    navigate('/login');
+                }
+                return Promise.reject(error);
+            }
+        );
+
+
+
         if (token) {
             axios.get('http://10.242.104.90:5000/protected', {
                 headers: { Authorization: `Bearer ${token}` }
@@ -33,7 +50,13 @@ const App = () => {
         } else {
             setLoading(false);
         }
-    }, []);
+
+
+        // Cleanup interceptor on component unmount
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
+    }, [navigate]);
 
     if (loading) {
         return <div>Loading...</div>; // Show a loading state until the role is determined
@@ -51,6 +74,7 @@ const App = () => {
             <Route path="/video-audit" element={role ? <AuditTrail /> : <Navigate to="/login" />} />
             <Route path="/recorded-videos" element={role ? <RecordedVideo /> : <Navigate to="/login" />} />
             <Route path="/" element={<Navigate to={role ? (role === 'Administrator' ? '/admin-dashboard' : '/security-dashboard') : '/login'} />} />
+            <Route path="*" element={<Navigate to="/" />} />
         </Routes>
     );
 };
