@@ -1,4 +1,3 @@
-// src/components/AuditTrail.js
 import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material';
@@ -39,7 +38,10 @@ const AuditTrail = ({ onClose }) => {
                 const response = await axios.get('http://10.242.104.90:5000/video_audit_trail', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setAuditData(response.data);
+
+                // Sort audit data by deleted_at in descending order
+                const sortedData = response.data.sort((a, b) => new Date(b.deleted_at) - new Date(a.deleted_at));
+                setAuditData(sortedData);
             } catch (err) {
                 setError(err.message || "An error occurred while fetching audit data.");
             } finally {

@@ -21,7 +21,7 @@ class VideoDeletionAudit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     video_name = db.Column(db.String(255), nullable=False)
     deleted_by = db.Column(db.String(255), nullable=False)  # Username or user ID
-    deleted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deleted_at = db.Column(db.DateTime, default=datetime.now())
 
     def __init__(self, video_name, deleted_by):
         self.video_name = video_name

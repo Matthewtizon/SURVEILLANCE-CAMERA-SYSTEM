@@ -94,8 +94,7 @@ const CameraStream = () => {
                 <Container>
                     {error && <Typography color="error">{error}</Typography>}
                     <Box sx={{ mt: 4 }}>
-                        <Typography variant="h6">Welcome to the Camera Dashboard</Typography>
-                        <Typography variant="body1">Use the sidebar to navigate.</Typography>
+                        <Typography variant="h6">Camera Management</Typography>
                         {/* Replace with your camera IPs */}
                         {[0, 1, 2].map((cameraIp) => (
                             <Box key={cameraIp} sx={{ mb: 2 }}>

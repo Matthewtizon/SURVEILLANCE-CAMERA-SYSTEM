@@ -45,14 +45,18 @@ const RecordedVideo = () => {
     const fetchVideos = async () => {
         setLoadingVideos(true);
         const token = localStorage.getItem('token');
-
+    
         try {
             const response = await axios.get(`http://10.242.104.90:5000/get_recorded_videos?start_date=${startDate}&end_date=${endDate}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setVideos(response.data);
+            setVideos(response.data || []);  // Set to empty array if response data is undefined or empty
         } catch (error) {
-            console.error('Error fetching videos:', error);
+            if (error.response && error.response.status === 404) {
+                setVideos([]); // Clear video list if 404 (no videos found)
+            } else {
+                console.error('Error fetching videos:', error);
+            }
         } finally {
             setLoadingVideos(false);
         }

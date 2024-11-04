@@ -34,7 +34,7 @@ def check_alert(faces):
         # If the unknown face has been detected for more than the threshold and alert not yet triggered
         if current_time - last_detection_time >= detection_threshold and not alert_triggered:
             play_alert()  # Play the alert sound
-            send_notification("URL of the camera or relevant information")  # Send notification
+            #send_notification("URL of the camera or relevant information")  # Send notification
             alert_triggered = True  # Mark the alert as triggered
     else:
         # Reset the detection status if no unknown faces are present
