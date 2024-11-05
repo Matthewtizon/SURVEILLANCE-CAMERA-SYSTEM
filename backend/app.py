@@ -159,6 +159,7 @@ def create_app():
     camera_streams = {}
 
     
+    
     def start_camera(camera_ip):
         # Add variables to manage recording
         recording = False
@@ -166,6 +167,7 @@ def create_app():
         unknown_detected_time = None
         out = None
         current_recording_name = None
+        frame_count = 0  # Keep track of the frames
 
         
         cap = cv2.VideoCapture(int(camera_ip))
@@ -176,8 +178,11 @@ def create_app():
         while camera_ip in camera_streams:
             ret, frame = cap.read()
             if ret:
-                # Perform face recognition
-                recognized_faces = recognize_faces(frame)
+                if frame_count % 3 == 0:  # Adjust '3' based on performance
+                    # Perform face recognition
+                    recognized_faces = recognize_faces(frame)
+                frame_count += 1
+
 
                 # Check if unknown faces are present
                 unknown_faces_present = any(person_name == 'unknown' for person_name, _ in recognized_faces)
@@ -212,6 +217,7 @@ def create_app():
                             recording = False
                             print(f"Recording stopped. Video saved: {current_recording_name}")
                         non_detected_counter = 0
+
 
                 # Write frame to the video if recording
                 if recording and out:
