@@ -49,13 +49,13 @@ const UserManagement = () => {
         }
 
         try {
-            const response = await axios.get('http://10.242.104.90:5000/protected', {
+            const response = await axios.get('http://10.242.104.90:5000/api/protected', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUsername(response.data.logged_in_as.username);
             setRole(response.data.logged_in_as.role);
 
-            const userResponse = await axios.get('http://10.242.104.90:5000/users', {
+            const userResponse = await axios.get('http://10.242.104.90:5000/api/users', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUsers(userResponse.data);
@@ -75,7 +75,7 @@ const UserManagement = () => {
         const token = localStorage.getItem('token');
 
         try {
-            const response = await axios.delete(`http://10.242.104.90:5000/users/${userToDelete.user_id}`, {
+            const response = await axios.delete(`http://10.242.104.90:5000/api/users/${userToDelete.user_id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

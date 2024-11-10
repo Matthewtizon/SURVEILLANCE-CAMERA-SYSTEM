@@ -45,7 +45,7 @@ const ProfileManagement = ({ username, role }) => {
         const fetchProfileData = async () => {
             const token = localStorage.getItem('token');
             try {
-                const response = await axios.get('http://10.242.104.90:5000/profile', {
+                const response = await axios.get('http://10.242.104.90:5000/api/profile', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setProfile(response.data);
@@ -69,7 +69,7 @@ const ProfileManagement = ({ username, role }) => {
 
         const token = localStorage.getItem('token');
         try {
-            const response = await axios.post('http://10.242.104.90:5000/change-password', {
+            const response = await axios.post('http://10.242.104.90:5000/api/change-password', {
                 old_password: oldPassword,
                 new_password: newPassword
             }, {

@@ -20,7 +20,7 @@ const AuditTrail = ({ onClose }) => {
             }
 
             try {
-                const response = await axios.get('http://10.242.104.90:5000/protected', {
+                const response = await axios.get('http://10.242.104.90:5000/api/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setUsername(response.data.logged_in_as.username);
@@ -35,7 +35,7 @@ const AuditTrail = ({ onClose }) => {
         const fetchAuditData = async () => {
             const token = localStorage.getItem('token');
             try {
-                const response = await axios.get('http://10.242.104.90:5000/video_audit_trail', {
+                const response = await axios.get('http://10.242.104.90:5000/api/video_audit_trail', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 

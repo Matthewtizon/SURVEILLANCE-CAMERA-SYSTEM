@@ -11,7 +11,7 @@ const CameraStream = () => {
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [isCameraOpen, setIsCameraOpen] = useState({});
-    const socket = io('http://10.242.104.90:5000', {
+    const socket = io('http://10.242.104.90:5000/api', {
         transports: ['websocket'],
     });
 
@@ -19,7 +19,7 @@ const CameraStream = () => {
         const fetchUserData = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const userResponse = await axios.get('http://10.242.104.90:5000/protected', {
+                const userResponse = await axios.get('http://10.242.104.90:5000/api/protected', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
@@ -59,7 +59,7 @@ const CameraStream = () => {
     const openCamera = async (cameraIp) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://10.242.104.90:5000/open_camera/${cameraIp}`, {
+            const response = await axios.get(`http://10.242.104.90:5000/api/open_camera/${cameraIp}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -74,7 +74,7 @@ const CameraStream = () => {
     const closeCamera = async (cameraIp) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://10.242.104.90:5000/close_camera/${cameraIp}`, {
+            const response = await axios.get(`http://10.242.104.90:5000/api/close_camera/${cameraIp}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

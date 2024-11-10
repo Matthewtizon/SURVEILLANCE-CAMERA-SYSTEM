@@ -9,7 +9,7 @@ bcrypt = Bcrypt()
 
 user_bp = Blueprint('user_bp', __name__)
 
-@user_bp.route('/register', methods=['POST'])
+@user_bp.route('/api/register', methods=['POST'])
 @jwt_required()
 def register():
     current_user = get_jwt_identity()
@@ -37,7 +37,7 @@ def register():
     db.session.commit()
     return jsonify({'message': 'User registered successfully!'})
 
-@user_bp.route('/users', methods=['GET'])
+@user_bp.route('/api/users', methods=['GET'])
 @jwt_required()
 def get_users():
     current_user = get_jwt_identity()
@@ -58,7 +58,7 @@ def get_users():
     
     return jsonify(user_list), 200
 
-@user_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@user_bp.route('/api/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
     current_user = get_jwt_identity()
@@ -73,7 +73,7 @@ def delete_user(user_id):
     db.session.commit()
     return jsonify({'message': 'User deleted successfully'}), 200
 
-@user_bp.route('/login', methods=['POST'])
+@user_bp.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     if not data or not data.get('username') or not data.get('password'):
@@ -90,7 +90,7 @@ def login():
     
     return jsonify({'message': 'Invalid credentials'}), 401
 
-@user_bp.route('/profile', methods=['GET'])
+@user_bp.route('/api/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
     current_user = get_jwt_identity()
@@ -108,7 +108,7 @@ def get_profile():
 
 
 
-@user_bp.route('/change-password', methods=['POST'])
+@user_bp.route('/api/change-password', methods=['POST'])
 @jwt_required()
 def change_password():
     current_user = get_jwt_identity()

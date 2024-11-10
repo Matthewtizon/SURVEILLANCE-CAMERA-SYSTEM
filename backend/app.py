@@ -41,12 +41,12 @@ def create_app():
     from routes.user_routes import user_bp
     app.register_blueprint(user_bp)
 
-    @app.route('/', methods=['GET'])
+    @app.route('/api/', methods=['GET'])
     def home():
         return jsonify({'message': 'Welcome to the Flask server!'}), 200
 
 
-    @app.route('/admin-dashboard', methods=['GET'])
+    @app.route('/api/admin-dashboard', methods=['GET'])
     @jwt_required()
     def admin_dashboard():
         current_user = get_jwt_identity()
@@ -54,7 +54,7 @@ def create_app():
             return jsonify({'message': 'Unauthorized'}), 403
         return jsonify({'message': 'Welcome to the Admin Dashboard'}), 200
 
-    @app.route('/security-dashboard', methods=['GET'])
+    @app.route('/api/security-dashboard', methods=['GET'])
     @jwt_required()
     def security_dashboard():
         current_user = get_jwt_identity()
@@ -62,7 +62,7 @@ def create_app():
             return jsonify({'message': 'Unauthorized'}), 403
         return jsonify({'message': 'Welcome to the Security Dashboard'}), 200
     
-    @app.route('/get_recorded_videos', methods=['GET'])
+    @app.route('/api/get_recorded_videos', methods=['GET'])
     @jwt_required()
     def get_recorded_videos():
         start_date = request.args.get('start_date')
@@ -87,7 +87,7 @@ def create_app():
 
         return jsonify(videos), 200
     
-    @app.route('/delete_video', methods=['DELETE'])
+    @app.route('/api/delete_video', methods=['DELETE'])
     @jwt_required()
     def delete_video():
         video_url = request.args.get('url')
@@ -125,7 +125,7 @@ def create_app():
             return jsonify({"error": str(e)}), 500
         
 
-    @app.route('/video_audit_trail', methods=['GET'])
+    @app.route('/api/video_audit_trail', methods=['GET'])
     @jwt_required()  # Ensure the user is authenticated
     def get_audit_trail():
         try:
@@ -149,7 +149,7 @@ def create_app():
             return jsonify({"error": "Unable to fetch audit trail data."}), 500
 
 
-    @app.route('/protected', methods=['GET'])
+    @app.route('/api/protected', methods=['GET'])
     @jwt_required()
     def protected():
         current_user = get_jwt_identity()
@@ -243,7 +243,7 @@ def create_app():
         print("Camera released.")
 
 
-    @app.route('/open_camera/<camera_ip>', methods=['GET'])
+    @app.route('/api/open_camera/<camera_ip>', methods=['GET'])
     @jwt_required()
     def open_camera(camera_ip):
         if camera_ip not in camera_streams:
@@ -253,7 +253,7 @@ def create_app():
             return jsonify({'message': f'Camera {camera_ip} started'}), 200
         return jsonify({'message': f'Camera {camera_ip} is already running'}), 400
 
-    @app.route('/close_camera/<camera_ip>', methods=['GET'])
+    @app.route('/api/close_camera/<camera_ip>', methods=['GET'])
     @jwt_required()
     def close_camera(camera_ip):
         if camera_ip in camera_streams:
