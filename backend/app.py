@@ -250,6 +250,10 @@ def create_app():
             thread = threading.Thread(target=start_camera, args=(camera_ip,))
             thread.start()
             camera_streams[camera_ip] = thread
+
+            # Emit event to notify all clients about the change in camera status
+            socketio.emit('camera_status_changed', {'camera_ip': camera_ip, 'status': 'opened'})
+
             return jsonify({'message': f'Camera {camera_ip} started'}), 200
         return jsonify({'message': f'Camera {camera_ip} is already running'}), 400
 
@@ -258,8 +262,20 @@ def create_app():
     def close_camera(camera_ip):
         if camera_ip in camera_streams:
             del camera_streams[camera_ip]
+
+            # Emit event to notify all clients about the change in camera status
+            socketio.emit('camera_status_changed', {'camera_ip': camera_ip, 'status': 'closed'})
+
             return jsonify({'message': f'Camera {camera_ip} stopped'}), 200
         return jsonify({'message': f'Camera {camera_ip} is not running'}), 400
+
+    
+    # Add this route in app.py to get the status of all cameras
+    @app.route('/api/camera_status', methods=['GET'])
+    @jwt_required()
+    def camera_status():
+        camera_status_dict = {camera_ip: True for camera_ip in camera_streams.keys()}
+        return jsonify(camera_status_dict), 200
 
     return app
 

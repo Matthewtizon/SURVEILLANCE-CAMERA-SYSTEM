@@ -33,7 +33,23 @@ const CameraStream = () => {
             }
         };
 
+        const fetchCameraStatus = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const statusResponse = await axios.get('http://10.242.104.90:5000/api/camera_status', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setIsCameraOpen(statusResponse.data);
+            } catch (error) {
+                console.error('Failed to fetch camera status:', error);
+                setError('Failed to fetch camera status. Please try again.');
+            }
+        };
+
         fetchUserData();
+        fetchCameraStatus();
 
         // Listen for video frames from the server
         socket.on('video_frame', (data) => {
@@ -45,6 +61,15 @@ const CameraStream = () => {
             if (imgElement) {
                 imgElement.src = base64Frame;
             }
+        });
+
+        // Listen for camera status changes
+        socket.on('camera_status_changed', (data) => {
+            const { camera_ip, status } = data;
+            setIsCameraOpen((prev) => ({
+                ...prev,
+                [camera_ip]: status,
+            }));
         });
 
         return () => {
@@ -95,7 +120,6 @@ const CameraStream = () => {
                     {error && <Typography color="error">{error}</Typography>}
                     <Box sx={{ mt: 4 }}>
                         <Typography variant="h6">Camera Management</Typography>
-                        {/* Replace with your camera IPs */}
                         {[0, 1, 2].map((cameraIp) => (
                             <Box key={cameraIp} sx={{ mb: 2 }}>
                                 <Typography variant="subtitle1">Camera {cameraIp}</Typography>
@@ -112,7 +136,6 @@ const CameraStream = () => {
                 </Container>
             </Box>
         </Box>
-        
     );
 };
 
