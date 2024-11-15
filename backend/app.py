@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 import os
 import logging
 from werkzeug.utils import secure_filename
-from models import User, VideoDeletionAudit
+from models import User, VideoDeletionAudit, Camera
 from config import Config
 from db import db
 import cv2
@@ -29,6 +29,94 @@ if not os.path.exists(RECORDINGS_DIR):
 socketio = SocketIO(cors_allowed_origins=["http://10.242.104.90:3000", "http://localhost", "http://10.242.104.90"])
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+# Replace existing camera_streams with camera_streams_dict
+camera_streams_dict = {}
+
+def start_camera_stream(camera_id, rtsp_url):
+
+    def stream():
+        # Add variables to manage recording
+        recording = False
+        non_detected_counter = 0
+        unknown_detected_time = None
+        out = None
+        current_recording_name = None
+        frame_count = 0  # Keep track of the frames
+
+        cap = cv2.VideoCapture(rtsp_url)
+        if not cap.isOpened():
+            print(f"Failed to open camera {camera_id} with RTSP URL: {rtsp_url}")
+            return
+
+        while camera_id in camera_streams_dict:
+            ret, frame = cap.read()
+            if ret:
+                if frame_count % 3 == 0:  # Adjust '3' based on performance
+                    # Perform face recognition
+                    recognized_faces = recognize_faces(frame)
+                frame_count += 1
+
+                # Check if unknown faces are present
+                unknown_faces_present = any(person_name == 'unknown' for person_name, _ in recognized_faces)
+
+                # Logic to check if an unknown face has been detected for more than 2 seconds
+                if unknown_faces_present:
+                    non_detected_counter = 0
+                    if not unknown_detected_time:
+                        unknown_detected_time = datetime.datetime.now()
+                    else:
+                        elapsed_time = (datetime.datetime.now() - unknown_detected_time).total_seconds()
+                        if elapsed_time >= 2 and not recording:
+                            # Start recording
+                            now = datetime.datetime.now()
+                            formatted_now = now.strftime("%d-%m-%y-%H-%M-%S")
+                            current_recording_name = os.path.join(RECORDINGS_DIR, f'{formatted_now}.mp4')
+                            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or use 'XVID'
+                            out = cv2.VideoWriter(current_recording_name, fourcc, 20.0, (frame.shape[1], frame.shape[0]))
+                            recording = True
+                            print(f"Recording started at {formatted_now}")
+
+                # Stop recording if no unknown faces detected for 50 frames
+                else:
+                    unknown_detected_time = None
+                    non_detected_counter += 1
+                    if non_detected_counter >= 50 and recording:
+                        # Stop recording and release the writer
+                        if out:
+                            out.release()
+                            handle_detection(current_recording_name)
+                            out = None
+                            recording = False
+                            print(f"Recording stopped. Video saved: {current_recording_name}")
+                        non_detected_counter = 0
+
+                # Write frame to the video if recording
+                if recording and out:
+                    out.write(frame)
+
+                # Process the recognized faces to monitor for unknown faces
+                check_alert(recognized_faces)
+
+                for person_name, (x, y, w, h) in recognized_faces:
+                    color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
+                    cv2.putText(frame, person_name.upper(), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+
+                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+                frame_bytes = buffer.tobytes()
+                socketio.emit('video_frame', {'camera_id': camera_id, 'frame': frame_bytes})
+            else:
+                break
+
+        cap.release()
+        if out:
+            out.release()
+        print(f"Camera {camera_id} released.")
+
+    # Run the streaming process in a new thread
+    threading.Thread(target=stream).start()
 
 def create_app():
     app = Flask(__name__)
@@ -154,128 +242,76 @@ def create_app():
     def protected():
         current_user = get_jwt_identity()
         return jsonify(logged_in_as=current_user), 200
-
-    # Camera streaming routes
-    camera_streams = {}
-
     
-    
-    def start_camera(camera_ip):
-        # Add variables to manage recording
-        recording = False
-        non_detected_counter = 0
-        unknown_detected_time = None
-        out = None
-        current_recording_name = None
-        frame_count = 0  # Keep track of the frames
-
-        
-        cap = cv2.VideoCapture(int(camera_ip))
-        if not cap.isOpened():
-            print(f"Failed to open camera {camera_ip}")
-            return
-
-        while camera_ip in camera_streams:
-            ret, frame = cap.read()
-            if ret:
-                if frame_count % 3 == 0:  # Adjust '3' based on performance
-                    # Perform face recognition
-                    recognized_faces = recognize_faces(frame)
-                frame_count += 1
-
-
-                # Check if unknown faces are present
-                unknown_faces_present = any(person_name == 'unknown' for person_name, _ in recognized_faces)
-
-                # Logic to check if an unknown face has been detected for more than 2 seconds
-                if unknown_faces_present:
-                    non_detected_counter = 0
-                    if not unknown_detected_time:
-                        unknown_detected_time = datetime.datetime.now()
-                    else:
-                        elapsed_time = (datetime.datetime.now() - unknown_detected_time).total_seconds()
-                        if elapsed_time >= 2 and not recording:
-                            # Start recording
-                            now = datetime.datetime.now()
-                            formatted_now = now.strftime("%d-%m-%y-%H-%M-%S")
-                            current_recording_name = os.path.join(RECORDINGS_DIR, f'{formatted_now}.mp4')
-                            fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or use 'XVID'
-                            out = cv2.VideoWriter(current_recording_name, fourcc, 20.0, (frame.shape[1], frame.shape[0]))
-                            recording = True
-                            print(f"Recording started at {formatted_now}")
-
-                # Stop recording if no unknown faces detected for 50 frames
-                else:
-                    unknown_detected_time = None
-                    non_detected_counter += 1
-                    if non_detected_counter >= 50 and recording:
-                        # Stop recording and release the writer
-                        if out:
-                            out.release()
-                            handle_detection(current_recording_name)
-                            out = None
-                            recording = False
-                            print(f"Recording stopped. Video saved: {current_recording_name}")
-                        non_detected_counter = 0
-
-
-                # Write frame to the video if recording
-                if recording and out:
-                    out.write(frame)
-
-                # Process the recognized faces to monitor for unknown faces
-                check_alert(recognized_faces)
-
-                for person_name, (x, y, w, h) in recognized_faces:
-                    color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
-                    cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-                    cv2.putText(frame, person_name.upper(), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
-
-                _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
-                frame_bytes = buffer.tobytes()
-                socketio.emit('video_frame', {'camera_ip': camera_ip, 'frame': frame_bytes})
-            else:
-                break
-
-        cap.release()
-        if out:
-            out.release()
-        print("Camera released.")
-
-
-    @app.route('/api/open_camera/<camera_ip>', methods=['GET'])
+    @app.route('/api/cameras', methods=['GET'])
     @jwt_required()
-    def open_camera(camera_ip):
-        if camera_ip not in camera_streams:
-            thread = threading.Thread(target=start_camera, args=(camera_ip,))
-            thread.start()
-            camera_streams[camera_ip] = thread
+    def get_cameras():
+        cameras = Camera.query.all()
+        cameras_data = [
+            {
+                "id": camera.id,
+                "name": camera.name,
+                "rtsp_url": camera.rtsp_url,
+                "is_active": camera.is_active
+            }
+            for camera in cameras
+        ]
+        return jsonify(cameras_data), 200
 
-            # Emit event to notify all clients about the change in camera status
-            socketio.emit('camera_status_changed', {'camera_ip': camera_ip, 'status': 'opened'})
-
-            return jsonify({'message': f'Camera {camera_ip} started'}), 200
-        return jsonify({'message': f'Camera {camera_ip} is already running'}), 400
-
-    @app.route('/api/close_camera/<camera_ip>', methods=['GET'])
+    @app.route('/api/cameras', methods=['POST'])
     @jwt_required()
-    def close_camera(camera_ip):
-        if camera_ip in camera_streams:
-            del camera_streams[camera_ip]
+    def add_camera():
+        data = request.get_json()
+        new_camera = Camera(name=data['name'], rtsp_url=data['rtsp_url'], is_active=True) # Automatically set as active
+        db.session.add(new_camera)
+        db.session.commit()
 
-            # Emit event to notify all clients about the change in camera status
-            socketio.emit('camera_status_changed', {'camera_ip': camera_ip, 'status': 'closed'})
+        # Start streaming for the new camera
+        start_camera_stream(new_camera.id, new_camera.rtsp_url)
 
-            return jsonify({'message': f'Camera {camera_ip} stopped'}), 200
-        return jsonify({'message': f'Camera {camera_ip} is not running'}), 400
+        return jsonify({"message": "Camera added and streaming started", "camera": {
+            "id": new_camera.id,
+            "name": new_camera.name,
+            "rtsp_url": new_camera.rtsp_url,
+            "is_active": new_camera.is_active
+        }}), 201
 
-    
-    # Add this route in app.py to get the status of all cameras
-    @app.route('/api/camera_status', methods=['GET'])
+    # Flask routes to update and delete cameras
+
+    @app.route('/api/cameras/<int:camera_id>', methods=['PUT'])
     @jwt_required()
-    def camera_status():
-        camera_status_dict = {camera_ip: True for camera_ip in camera_streams.keys()}
-        return jsonify(camera_status_dict), 200
+    def update_camera(camera_id):
+        camera = Camera.query.get(camera_id)
+        if not camera:
+            return jsonify({"error": "Camera not found"}), 404
+
+        data = request.get_json()
+        camera.name = data.get('name', camera.name)
+        camera.rtsp_url = data.get('rtsp_url', camera.rtsp_url)
+        db.session.commit()
+
+        return jsonify({"message": "Camera updated successfully", "camera": {
+            "id": camera.id,
+            "name": camera.name,
+            "rtsp_url": camera.rtsp_url,
+            "is_active": camera.is_active
+        }}), 200
+
+    @app.route('/api/cameras/<int:camera_id>', methods=['DELETE'])
+    @jwt_required()
+    def delete_camera(camera_id):
+        camera = Camera.query.get(camera_id)
+        if not camera:
+            return jsonify({"error": "Camera not found"}), 404
+
+        # Stop the stream if the camera is active
+        if camera.is_active:
+            start_camera_stream(camera.id)
+
+        db.session.delete(camera)
+        db.session.commit()
+        return jsonify({"message": "Camera deleted successfully"}), 200
+
 
     return app
 
@@ -312,6 +348,14 @@ def initialize():
             db.session.add(new_user)
             db.session.commit()
 
+        # Automatically start active cameras
+        active_cameras = Camera.query.filter_by(is_active=True).all()
+        for camera in active_cameras:
+            if camera.id not in camera_streams_dict:
+                thread = threading.Thread(target=start_camera_stream, args=(camera.id, camera.rtsp_url))
+                thread.start()
+                camera_streams_dict[camera.id] = thread
+
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -321,6 +365,7 @@ def initialize():
         http_server.serve_forever()
     except Exception as e:
         logging.error(f"Unexpected error occurred: {e}")
+
 
 if __name__ == '__main__':
     initialize()
