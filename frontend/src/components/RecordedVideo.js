@@ -26,7 +26,7 @@ const RecordedVideo = () => {
             }
 
             try {
-                const response = await axios.get('http://10.242.104.90:5000/protected', {
+                const response = await axios.get('http://10.242.104.90:5000/api/protected', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setUsername(response.data.logged_in_as.username);
@@ -47,7 +47,7 @@ const RecordedVideo = () => {
         const token = localStorage.getItem('token');
     
         try {
-            const response = await axios.get(`http://10.242.104.90:5000/get_recorded_videos?start_date=${startDate}&end_date=${endDate}`, {
+            const response = await axios.get(`http://10.242.104.90:5000/api/get_recorded_videos?start_date=${startDate}&end_date=${endDate}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setVideos(response.data || []);  // Set to empty array if response data is undefined or empty
@@ -66,7 +66,7 @@ const RecordedVideo = () => {
         setLoadingVideos(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`/delete_video?url=${encodeURIComponent(url)}`, {
+            await axios.delete(`/api/delete_video?url=${encodeURIComponent(url)}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',  // Explicitly set Content-Type

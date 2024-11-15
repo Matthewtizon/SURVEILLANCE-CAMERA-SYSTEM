@@ -3,6 +3,7 @@ import os
 import numpy as np
 from deepface import DeepFace
 import tensorflow as tf
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Ensure GPU is available and set memory growth to prevent allocation errors
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -23,43 +24,56 @@ face_net = cv2.dnn.readNetFromCaffe(ssd_prototxt, ssd_model)
 # Path to dataset
 dataset_path = 'dataset'
 
-# Load dataset images
-def load_dataset():
-    dataset = {}
+def load_dataset_with_embeddings(dataset_path):
+    dataset_embeddings = {}
     for person_folder in os.listdir(dataset_path):
         person_path = os.path.join(dataset_path, person_folder)
         if os.path.isdir(person_path):
-            dataset[person_folder] = []
+            embeddings = []
             for img_name in os.listdir(person_path):
                 img_path = os.path.join(person_path, img_name)
                 img = cv2.imread(img_path)
                 if img is not None:
-                    dataset[person_folder].append(img)
-    return dataset
+                    try:
+                        # Resize image before generating embedding
+                        img = cv2.resize(img, (224, 224))  # Resize to VGG-Face expected input size
+                        embedding = DeepFace.represent(img, model_name='VGG-Face', enforce_detection=False)
+                        print(f"Generated embedding for {img_name}: {embedding}")
+                        embeddings.append(embedding[0]['embedding'])
+                    except Exception as e:
+                        print(f"Error generating embedding for {img_name}: {e}")
+            dataset_embeddings[person_folder] = embeddings
+    return dataset_embeddings
 
 
-dataset = load_dataset()
+
+# Use precomputed embeddings for face matching
+dataset_embeddings = load_dataset_with_embeddings(dataset_path)
 
 # Match face with dataset
 def match_face(face):
-    for person_name, images in dataset.items():
-        for ref_img in images:
-            try:
-                result = DeepFace.verify(
-                    face,
-                    ref_img,
-                    model_name='VGG-Face',
-                    enforce_detection=False,
-                    detector_backend='skip'
-                )
-                if result['verified']:
-                    return person_name
-            except ValueError:
-                continue
-            except Exception as e:
-                print(f"Error during face verification: {e}")
-                continue
-    return 'unknown'
+    global dataset_embeddings
+
+    # Generate embedding for the detected face
+    try:
+        face_embedding = DeepFace.represent(face, model_name='VGG-Face', enforce_detection=False)[0]['embedding']
+    except Exception as e:
+        print(f"Error generating embedding for the face: {e}")
+        return 'unknown'
+
+    best_match = ('unknown', 0)  # Default to 'unknown' with the lowest similarity score
+
+    # Compare embedding with dataset embeddings
+    for person_name, embeddings in dataset_embeddings.items():
+        for ref_embedding in embeddings:
+            # Calculate cosine similarity
+            similarity = cosine_similarity([face_embedding], [ref_embedding])[0][0]
+            if similarity > best_match[1]:  # Track highest similarity score
+                best_match = (person_name, similarity)
+
+    # Define a threshold for recognizing a person
+    threshold = 0.4  # Adjust this as necessary
+    return best_match[0] if best_match[1] >= threshold else 'unknown'
 
 # Detect faces using SSD
 def detect_faces_ssd(frame):

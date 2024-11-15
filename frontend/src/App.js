@@ -37,7 +37,7 @@ const App = () => {
 
 
         if (token) {
-            axios.get('http://10.242.104.90:5000/protected', {
+            axios.get('http://10.242.104.90:5000/api/protected', {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(response => {
                 setRole(response.data.logged_in_as.role);
