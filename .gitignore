@@ -27,7 +27,7 @@ yarn-error.log*
 
 surveillance-camera-push-notif.json
 credentials.json
-/__pycache__
+backend/__pycache__
 .env
 
-__pycache__/
+__pycache__
