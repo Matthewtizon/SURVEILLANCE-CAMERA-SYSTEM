@@ -29,3 +29,5 @@ surveillance-camera-push-notif.json
 credentials.json
 /__pycache__
 .env
+
+__pycache__/
