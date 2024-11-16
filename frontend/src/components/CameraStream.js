@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 import { Box, Container, Typography, Button, Grid, TextField } from '@mui/material';
@@ -10,13 +10,13 @@ const CameraStream = () => {
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [isCameraOpen, setIsCameraOpen] = useState({});
     const [cameras, setCameras] = useState([]);
     const [newCameraName, setNewCameraName] = useState('');
     const [newCameraRTSP, setNewCameraRTSP] = useState('');
     const [editCameraName, setEditCameraName] = useState('');
     const [editCameraRTSP, setEditCameraRTSP] = useState('');
     const [editingCameraId, setEditingCameraId] = useState(null);
+    const cameraRefs = useRef({});  // Use useRef to keep track of image elements
 
     const socket = io('http://10.242.104.90:5000', {
         transports: ['websocket'],
@@ -49,13 +49,6 @@ const CameraStream = () => {
                     },
                 });
                 setCameras(camerasResponse.data);
-                // Initialize isCameraOpen state based on camera statuses
-                const statusResponse = await axios.get('http://10.242.104.90:5000/api/camera_status', {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setIsCameraOpen(statusResponse.data);
             } catch (error) {
                 console.error('Failed to fetch cameras:', error);
                 setError('Failed to fetch cameras. Please try again.');
@@ -67,23 +60,16 @@ const CameraStream = () => {
 
         // Listen for video frames from the server
         socket.on('video_frame', (data) => {
+            console.log('Received video frame:', data);
             const { camera_id, frame } = data;
+
             const base64Frame = `data:image/jpeg;base64,${btoa(
                 String.fromCharCode(...new Uint8Array(frame))
             )}`;
-            const imgElement = document.getElementById(`camera-${camera_id}`);
-            if (imgElement) {
-                imgElement.src = base64Frame;
-            }
-        });
 
-        // Listen for camera status changes
-        socket.on('camera_status_changed', (data) => {
-            const { camera_id, status } = data;
-            setIsCameraOpen((prev) => ({
-                ...prev,
-                [camera_id]: status === 'opened',
-            }));
+            if (cameraRefs.current[camera_id]) {
+                cameraRefs.current[camera_id].src = base64Frame;  // Directly update image element
+            }
         });
 
         return () => {
@@ -144,13 +130,14 @@ const CameraStream = () => {
     };
 
     // Function to delete a camera
-    const deleteCamera = async (cameraId) => {
+    const deleteCamera = async (cameraId, rtspUrl) => {
         try {
             const token = localStorage.getItem('token');
             await axios.delete(`http://10.242.104.90:5000/api/cameras/${cameraId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
+                data: { rtsp_url: rtspUrl },  // Send rtsp_url in the request body
             });
             setCameras((prevCameras) => prevCameras.filter((camera) => camera.id !== cameraId));
         } catch (error) {
@@ -158,7 +145,6 @@ const CameraStream = () => {
             setError('Failed to delete camera. Please try again.');
         }
     };
-
 
     return (
         <Box display="flex">
@@ -204,6 +190,16 @@ const CameraStream = () => {
                                 <Grid item xs={12} sm={6} md={4} key={camera.id}>
                                     <Box sx={{ border: '1px solid #ccc', borderRadius: '8px', p: 2 }}>
                                         <Typography variant="h6">{camera.name}</Typography>
+                                        
+                                        {/* Video Stream */}
+                                        <Box sx={{ mt: 2 }}>
+                                            <img
+                                                id={`camera-${camera.id}`}
+                                                alt={`Camera ${camera.name}`}
+                                                style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                                            />
+                                        </Box>
+
                                         {editingCameraId === camera.id ? (
                                             <Box>
                                                 <TextField
@@ -239,7 +235,7 @@ const CameraStream = () => {
                                                 </Button>
                                             </Box>
                                         )}
-                                        <Button variant="contained" color="error" onClick={() => deleteCamera(camera.id)} fullWidth sx={{ mt: 1 }}>
+                                        <Button variant="contained" color="error" onClick={() => deleteCamera(camera.id, camera.rtsp_url)} fullWidth sx={{ mt: 1 }}>
                                             Delete
                                         </Button>
                                     </Box>

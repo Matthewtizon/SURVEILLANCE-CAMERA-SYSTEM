@@ -30,9 +30,14 @@ class VideoDeletionAudit(db.Model):
 
 
 class Camera(db.Model):
+    __tablename__ = 'cameras'
+    
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    rtsp_url = db.Column(db.String(255), nullable=False)
-    is_active = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    updated_at = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now())
+    rtsp_url = db.Column(db.String(200), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+
+    def __init__(self, name, rtsp_url, is_active=True):
+        self.name = name
+        self.rtsp_url = rtsp_url
+        self.is_active = is_active
