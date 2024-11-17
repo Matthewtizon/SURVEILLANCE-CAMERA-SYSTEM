@@ -60,9 +60,7 @@ const CameraStream = () => {
 
         // Listen for video frames from the server
         socket.on('video_frame', (data) => {
-            console.log('Received video frame:', data);
             const { camera_id, frame } = data;
-
             const base64Frame = `data:image/jpeg;base64,${btoa(
                 String.fromCharCode(...new Uint8Array(frame))
             )}`;
@@ -194,10 +192,11 @@ const CameraStream = () => {
                                         {/* Video Stream */}
                                         <Box sx={{ mt: 2 }}>
                                             <img
-                                                id={`camera-${camera.id}`}
-                                                alt={`Camera ${camera.name}`}
-                                                style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+                                                ref={(el) => (cameraRefs.current[camera.id] = el)}
+                                                alt={`Camera ${camera.id}`}
+                                                style={{ width: '100%', height: 'auto' }}
                                             />
+                                            <p>{camera.name}</p>
                                         </Box>
 
                                         {editingCameraId === camera.id ? (
