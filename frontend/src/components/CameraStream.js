@@ -106,7 +106,7 @@ const CameraStream = () => {
             const token = localStorage.getItem('token');
             const response = await axios.put(`http://10.242.104.90:5000/api/cameras/${cameraId}`, {
                 name: editCameraName,
-                rtsp_url: editCameraRTSP,
+                // rtsp_url: editCameraRTSP,
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -120,7 +120,7 @@ const CameraStream = () => {
             );
             setEditingCameraId(null);
             setEditCameraName('');
-            setEditCameraRTSP('');
+            //setEditCameraRTSP('');
         } catch (error) {
             console.error('Failed to update camera:', error);
             setError('Failed to update camera. Please try again.');
@@ -206,13 +206,6 @@ const CameraStream = () => {
                                                     value={editCameraName}
                                                     onChange={(e) => setEditCameraName(e.target.value)}
                                                     fullWidth
-                                                />
-                                                <TextField
-                                                    label="Edit RTSP URL"
-                                                    value={editCameraRTSP}
-                                                    onChange={(e) => setEditCameraRTSP(e.target.value)}
-                                                    fullWidth
-                                                    sx={{ mt: 1 }}
                                                 />
                                                 <Button variant="contained" color="primary" onClick={() => updateCamera(camera.id)} fullWidth>
                                                     Save Changes

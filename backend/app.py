@@ -312,7 +312,9 @@ def create_app():
         db.session.commit()
 
         print(f"Starting thread with args: {new_camera.id}")
-        threading.Thread(target=start_camera_stream, args=(app, new_camera.id)).start()
+        thread = threading.Thread(target=start_camera_stream, args=(app, new_camera.id))
+        thread.start()
+        camera_streams_dict[new_camera.id] = thread
 
         return jsonify({"message": "Camera added and streaming started", "camera": {
             "id": new_camera.id,
@@ -333,7 +335,7 @@ def create_app():
 
         data = request.get_json()
         camera.name = data.get('name', camera.name)
-        camera.rtsp_url = data.get('rtsp_url', camera.rtsp_url)
+        #camera.rtsp_url = data.get('rtsp_url', camera.rtsp_url)
         db.session.commit()
 
         return jsonify({"message": "Camera updated successfully", "camera": {
