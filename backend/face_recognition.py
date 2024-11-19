@@ -4,6 +4,7 @@ import numpy as np
 from deepface import DeepFace
 import tensorflow as tf
 from sklearn.metrics.pairwise import cosine_similarity
+from ultralytics import YOLO  # For YOLOv8
 
 # Ensure GPU is available and set memory growth to prevent allocation errors
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -16,10 +17,8 @@ if gpus:
 else:
     print("No GPU found, using CPU.")
 
-# Load SSD face detector
-ssd_model = "res10_300x300_ssd_iter_140000.caffemodel"
-ssd_prototxt = "deploy.prototxt"
-face_net = cv2.dnn.readNetFromCaffe(ssd_prototxt, ssd_model)
+# Load YOLOv8 model for face detection
+yolo_model = YOLO("yolov8n_100e.pt")  # Pre-trained YOLOv8-Tiny for face detection
 
 # Path to dataset
 dataset_path = 'dataset'
@@ -44,8 +43,6 @@ def load_dataset_with_embeddings(dataset_path):
                         print(f"Error generating embedding for {img_name}: {e}")
             dataset_embeddings[person_folder] = embeddings
     return dataset_embeddings
-
-
 
 # Use precomputed embeddings for face matching
 dataset_embeddings = load_dataset_with_embeddings(dataset_path)
@@ -72,35 +69,24 @@ def match_face(face):
                 best_match = (person_name, similarity)
 
     # Define a threshold for recognizing a person
-    threshold = 0.4  # Adjust this as necessary
+    threshold = 0.65  # Adjust this as necessary
     return best_match[0] if best_match[1] >= threshold else 'unknown'
 
-# Detect faces using SSD
-def detect_faces_ssd(frame):
-    (h, w) = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(
-        cv2.resize(frame, (300, 300)),
-        scalefactor=1.0,
-        size=(300, 300),
-        mean=(104.0, 177.0, 123.0)
-    )
-    face_net.setInput(blob)
-    detections = face_net.forward()
+# Detect faces using YOLOv8
+def detect_faces_yolo(frame):
+    # Perform YOLOv8 inference
+    results = yolo_model.predict(frame, conf=0.5)  # Confidence threshold at 50%
+    detections = results[0].boxes  # Get bounding boxes
 
     faces = []
-    for i in range(0, detections.shape[2]):
-        confidence = detections[0, 0, i, 2]
-        if confidence > 0.5:
-            box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-            (x, y, x1, y1) = box.astype("int")
-            x, y = max(0, x), max(0, y)
-            x1, y1 = min(w, x1), min(h, y1)
-            faces.append((x, y, x1 - x, y1 - y))
+    for detection in detections:
+        x1, y1, x2, y2 = map(int, detection.xyxy[0])  # Extract bounding box coordinates
+        faces.append((x1, y1, x2 - x1, y2 - y1))  # Convert to (x, y, w, h) format
     return faces
 
 # Process each frame for face recognition
 def recognize_faces(frame):
-    faces = detect_faces_ssd(frame)
+    faces = detect_faces_yolo(frame)  # Use YOLOv8 for face detection
     results = []
     for (x, y, w, h) in faces:
         face = frame[y:y+h, x:x+w]

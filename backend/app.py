@@ -135,11 +135,11 @@ def start_camera_stream(app, camera_id):
                         cv2.putText(frame, person_name.upper(), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
 
                     # Display the frame using OpenCV imshow for local monitoring
-                    #cv2.imshow(f"Camera {camera_id}", frame)
+                    cv2.imshow(f"Camera {camera_id}", frame)
 
                     # Wait for 1 ms before continuing to next frame, and check if the 'q' key is pressed to stop
-                    #if cv2.waitKey(1) & 0xFF == ord('q'):
-                    #    break
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
 
                     _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
                     frame_bytes = buffer.tobytes()
