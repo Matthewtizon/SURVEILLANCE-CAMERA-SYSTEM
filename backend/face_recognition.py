@@ -5,6 +5,8 @@ from deepface import DeepFace
 import tensorflow as tf
 from sklearn.metrics.pairwise import cosine_similarity
 from ultralytics import YOLO  # For YOLOv8
+import datetime
+from flask_socketio import SocketIO
 
 # Ensure GPU is available and set memory growth to prevent allocation errors
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -69,7 +71,7 @@ def match_face(face):
                 best_match = (person_name, similarity)
 
     # Define a threshold for recognizing a person
-    threshold = 0.65  # Adjust this as necessary
+    threshold = 0.54  # Adjust this as necessary
     return best_match[0] if best_match[1] >= threshold else 'unknown'
 
 # Detect faces using YOLOv8
