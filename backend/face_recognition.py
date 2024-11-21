@@ -6,7 +6,11 @@ import tensorflow as tf
 from sklearn.metrics.pairwise import cosine_similarity
 from ultralytics import YOLO  # For YOLOv8
 import datetime
-from flask_socketio import SocketIO
+import pandas as pd
+from PIL import Image
+import logging
+import time
+from alert import check_alert, start_alert_thread  # Import the check_alert function from alert.py
 
 # Ensure GPU is available and set memory growth to prevent allocation errors
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -25,54 +29,58 @@ yolo_model = YOLO("yolov8n_100e.pt")  # Pre-trained YOLOv8-Tiny for face detecti
 # Path to dataset
 dataset_path = 'dataset'
 
-def load_dataset_with_embeddings(dataset_path):
-    dataset_embeddings = {}
+
+import os
+logging.debug(f"Dataset exists: {os.path.exists(dataset_path)}")
+logging.debug(f"Dataset path: {dataset_path}")
+
+
+def create_face_database(dataset_path):
+    face_db = []
     for person_folder in os.listdir(dataset_path):
         person_path = os.path.join(dataset_path, person_folder)
         if os.path.isdir(person_path):
-            embeddings = []
             for img_name in os.listdir(person_path):
                 img_path = os.path.join(person_path, img_name)
-                img = cv2.imread(img_path)
-                if img is not None:
-                    try:
-                        # Resize image before generating embedding
-                        img = cv2.resize(img, (224, 224))  # Resize to VGG-Face expected input size
-                        embedding = DeepFace.represent(img, model_name='VGG-Face', enforce_detection=False)
-                        print(f"Generated embedding for {img_name}: {embedding}")
-                        embeddings.append(embedding[0]['embedding'])
-                    except Exception as e:
-                        print(f"Error generating embedding for {img_name}: {e}")
-            dataset_embeddings[person_folder] = embeddings
-    return dataset_embeddings
+                try:
+                    # Validate image format
+                    with Image.open(img_path) as img:
+                        img.verify()
+                    face_db.append({"person": person_folder, "img_path": img_path})
+                except Exception as e:
+                    print(f"Skipping invalid image {img_path}: {e}")
+    # Save to a DataFrame for compatibility with DeepFace's find method
+    return pd.DataFrame(face_db)
 
-# Use precomputed embeddings for face matching
-dataset_embeddings = load_dataset_with_embeddings(dataset_path)
 
-# Match face with dataset
+face_database = create_face_database(dataset_path)
+
+
 def match_face(face):
-    global dataset_embeddings
+    logging.debug(f"Matching face with shape: {face.shape if face is not None else 'None'}")
+    
+    # Perform face matching using DeepFace
+    results = DeepFace.find(face, db_path=dataset_path, model_name="VGG-Face", distance_metric="cosine", enforce_detection=False)
 
-    # Generate embedding for the detected face
-    try:
-        face_embedding = DeepFace.represent(face, model_name='VGG-Face', enforce_detection=False)[0]['embedding']
-    except Exception as e:
-        print(f"Error generating embedding for the face: {e}")
-        return 'unknown'
 
-    best_match = ('unknown', 0)  # Default to 'unknown' with the lowest similarity score
+    # Check if results is a list and it contains the correct structure
+    if isinstance(results, list) and len(results) > 0:
+        # The first element of the list contains a DataFrame of the results
+        df_results = results[0]  # Assuming the list contains a single DataFrame
+        if isinstance(df_results, pd.DataFrame) and not df_results.empty:
+            best_match = df_results.iloc[0]  # Access the first match
+            # Adjust threshold to control how similar the faces should be to match
+            if best_match['distance'] < 0.5:  # Example: If distance < 0.6, it's a match
+                label = os.path.basename(os.path.dirname(best_match['identity']))
+            else:
+                label = "Unknown"
+        else:
+            label = "Unknown"
+    else:
+        label = "Unknown"
 
-    # Compare embedding with dataset embeddings
-    for person_name, embeddings in dataset_embeddings.items():
-        for ref_embedding in embeddings:
-            # Calculate cosine similarity
-            similarity = cosine_similarity([face_embedding], [ref_embedding])[0][0]
-            if similarity > best_match[1]:  # Track highest similarity score
-                best_match = (person_name, similarity)
+    return label
 
-    # Define a threshold for recognizing a person
-    threshold = 0.54  # Adjust this as necessary
-    return best_match[0] if best_match[1] >= threshold else 'unknown'
 
 # Detect faces using YOLOv8
 def detect_faces_yolo(frame):
@@ -86,12 +94,20 @@ def detect_faces_yolo(frame):
         faces.append((x1, y1, x2 - x1, y2 - y1))  # Convert to (x, y, w, h) format
     return faces
 
-# Process each frame for face recognition
 def recognize_faces(frame):
     faces = detect_faces_yolo(frame)  # Use YOLOv8 for face detection
     results = []
     for (x, y, w, h) in faces:
         face = frame[y:y+h, x:x+w]
         person_name = match_face(face)
+
+        # Add this line to debug detected faces
+        print(f"Detected: {person_name}")
+        
         results.append((person_name, (x, y, w, h)))
+    
+    # Call alert checker in a separate thread and pass the faces detected
+    start_alert_thread(faces)  # Start alert check thread
+
     return results
+

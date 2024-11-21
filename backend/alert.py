@@ -25,23 +25,30 @@ def check_alert(faces):
 
     current_time = time.time()
 
-    # Check if there is any unknown face in the frame
-    if any(person_name == 'unknown' for person_name, _ in faces):
-        if not unknown_face_detected:
-            unknown_face_detected = True
-            last_detection_time = current_time  # Start the timer when an unknown face is detected
+    # Check if any face in the list has been labeled 'unknown'
+    for face in faces:
+        person_name, _ = face  # Unpack the name and bounding box
+        if person_name.lower() == 'unknown':
+            if not unknown_face_detected:
+                unknown_face_detected = True
+                last_detection_time = current_time  # Start the timer when an unknown face is detected
 
-        # If the unknown face has been detected for more than the threshold and alert not yet triggered
-        if current_time - last_detection_time >= detection_threshold and not alert_triggered:
-            play_alert()  # Play the alert sound
-            #send_notification("URL of the camera or relevant information")  # Send notification
-            alert_triggered = True  # Mark the alert as triggered
+            # If the unknown face has been detected for more than the threshold and alert not yet triggered
+            if current_time - last_detection_time >= detection_threshold and not alert_triggered:
+                play_alert()  # Play the alert sound
+                # send_notification("URL of the camera or relevant information")  # Uncomment to send a notification
+                alert_triggered = True  # Mark the alert as triggered
+            break  # Exit the loop once an unknown face is detected
     else:
         # Reset the detection status if no unknown faces are present
         unknown_face_detected = False
         last_detection_time = 0
         alert_triggered = False  # Reset the alert so it can be triggered again in the future
 
+
+
+
 # Function to run the alert checker in a separate thread
-def start_alert_thread():
-    threading.Thread(target=check_alert, daemon=True).start()
+def start_alert_thread(faces):
+    # Start a separate thread to check for unknown faces
+    threading.Thread(target=check_alert, args=(faces,), daemon=True).start()  # Pass 'faces' to check_alert

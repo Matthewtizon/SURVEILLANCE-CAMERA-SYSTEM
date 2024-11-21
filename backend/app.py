@@ -12,7 +12,7 @@ import cv2
 from flask_socketio import SocketIO  # Import SocketIO here
 import threading  # Import threading here
 from face_recognition import recognize_faces
-from alert import check_alert  # Import the check_alert function
+from alert import check_alert, start_alert_thread  # Import the check_alert function
 import datetime
 from storage import handle_detection, list_videos_in_date_range, bucket
 from urllib.parse import unquote
@@ -365,6 +365,15 @@ def create_app():
 
     
     
+
+
+    # Camera streaming routes
+    camera_streams = {}
+
+    
+    
+
+
     def start_camera(camera_ip):
         # Add variables to manage recording
         recording = False
@@ -374,11 +383,13 @@ def create_app():
         current_recording_name = None
         frame_count = 0  # Keep track of the frames
 
-        
         cap = cv2.VideoCapture(int(camera_ip))
         if not cap.isOpened():
             print(f"Failed to open camera {camera_ip}")
             return
+
+        # Start the alert checking thread
+        #start_alert_thread()
 
         while camera_ip in camera_streams:
             ret, frame = cap.read()
@@ -387,7 +398,6 @@ def create_app():
                     # Perform face recognition
                     recognized_faces = recognize_faces(frame)
                 frame_count += 1
-
 
                 # Check if unknown faces are present
                 unknown_faces_present = any(person_name == 'unknown' for person_name, _ in recognized_faces)
@@ -423,13 +433,12 @@ def create_app():
                             print(f"Recording stopped. Video saved: {current_recording_name}")
                         non_detected_counter = 0
 
-
                 # Write frame to the video if recording
                 if recording and out:
                     out.write(frame)
 
                 # Process the recognized faces to monitor for unknown faces
-                check_alert(recognized_faces)
+                check_alert(recognized_faces)  # Check for alerts on unknown faces
 
                 for person_name, (x, y, w, h) in recognized_faces:
                     color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
@@ -446,6 +455,7 @@ def create_app():
         if out:
             out.release()
         print("Camera released.")
+
 
 
     @app.route('/api/open_camera/<camera_ip>', methods=['GET'])
