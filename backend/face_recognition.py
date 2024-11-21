@@ -29,11 +29,16 @@ yolo_model = YOLO("yolov8n_100e.pt")  # Pre-trained YOLOv8-Tiny for face detecti
 # Path to dataset
 dataset_path = 'dataset'
 
+# Path to save recordings
+RECORDINGS_DIR = 'recordings'
+os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
-import os
-logging.debug(f"Dataset exists: {os.path.exists(dataset_path)}")
-logging.debug(f"Dataset path: {dataset_path}")
-
+# Variables for recording logic
+unknown_detected_time = None
+recording = False
+non_detected_counter = 0
+out = None
+current_recording_name = None
 
 def create_face_database(dataset_path):
     face_db = []
@@ -52,37 +57,23 @@ def create_face_database(dataset_path):
     # Save to a DataFrame for compatibility with DeepFace's find method
     return pd.DataFrame(face_db)
 
-
 face_database = create_face_database(dataset_path)
 
-
 def match_face(face):
-    logging.debug(f"Matching face with shape: {face.shape if face is not None else 'None'}")
-    
-    # Perform face matching using DeepFace
-    results = DeepFace.find(face, db_path=dataset_path, model_name="VGG-Face", distance_metric="cosine", enforce_detection=False)
+    try:
+        # Perform face matching using DeepFace
+        results = DeepFace.find(face, db_path=dataset_path, model_name="VGG-Face", distance_metric="cosine", enforce_detection=False)
+        if isinstance(results, list) and len(results) > 0:
+            df_results = results[0]  # The first element contains a DataFrame
+            if isinstance(df_results, pd.DataFrame) and not df_results.empty:
+                best_match = df_results.iloc[0]
+                if best_match['distance'] < 0.4:  # Adjust threshold as needed
+                    return os.path.basename(os.path.dirname(best_match['identity']))
+        return "unknown"
+    except Exception as e:
+        logging.error(f"Error in matching face: {e}")
+        return "unknown"
 
-
-    # Check if results is a list and it contains the correct structure
-    if isinstance(results, list) and len(results) > 0:
-        # The first element of the list contains a DataFrame of the results
-        df_results = results[0]  # Assuming the list contains a single DataFrame
-        if isinstance(df_results, pd.DataFrame) and not df_results.empty:
-            best_match = df_results.iloc[0]  # Access the first match
-            # Adjust threshold to control how similar the faces should be to match
-            if best_match['distance'] < 0.5:  # Example: If distance < 0.6, it's a match
-                label = os.path.basename(os.path.dirname(best_match['identity']))
-            else:
-                label = "Unknown"
-        else:
-            label = "Unknown"
-    else:
-        label = "Unknown"
-
-    return label
-
-
-# Detect faces using YOLOv8
 def detect_faces_yolo(frame):
     # Perform YOLOv8 inference
     results = yolo_model.predict(frame, conf=0.5)  # Confidence threshold at 50%
@@ -95,19 +86,55 @@ def detect_faces_yolo(frame):
     return faces
 
 def recognize_faces(frame):
+    global unknown_detected_time, recording, non_detected_counter, out, current_recording_name
+
     faces = detect_faces_yolo(frame)  # Use YOLOv8 for face detection
-    results = []
+    recognized_faces = []
     for (x, y, w, h) in faces:
         face = frame[y:y+h, x:x+w]
         person_name = match_face(face)
+        recognized_faces.append((person_name, (x, y, w, h)))
 
-        # Add this line to debug detected faces
-        print(f"Detected: {person_name}")
-        
-        results.append((person_name, (x, y, w, h)))
-    
+    # Check if unknown faces are present
+    unknown_faces_present = any(person_name == 'unknown' for person_name, _ in recognized_faces)
+
+    # Logic to start and stop recording
+    if unknown_faces_present:
+        non_detected_counter = 0
+        if not unknown_detected_time:
+            unknown_detected_time = datetime.datetime.now()
+        else:
+            elapsed_time = (datetime.datetime.now() - unknown_detected_time).total_seconds()
+            if elapsed_time >= 2 and not recording:
+                # Start recording
+                now = datetime.datetime.now()
+                formatted_now = now.strftime("%d-%m-%y-%H-%M-%S")
+                current_recording_name = os.path.join(RECORDINGS_DIR, f'{formatted_now}.mp4')
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or use 'XVID'
+                out = cv2.VideoWriter(current_recording_name, fourcc, 20.0, (frame.shape[1], frame.shape[0]))
+                recording = True
+                print(f"Recording started at {formatted_now}")
+    else:
+        unknown_detected_time = None
+        non_detected_counter += 1
+        if non_detected_counter >= 50 and recording:
+            # Stop recording and release the writer
+            if out:
+                out.release()
+                out = None
+                recording = False
+                print(f"Recording stopped. Video saved: {current_recording_name}")
+
+                # Call handle_detection to upload video to Google Cloud Storage
+                from storage import handle_detection
+                handle_detection(current_recording_name)
+            non_detected_counter = 0
+
+    # Write frame to the video if recording
+    if recording and out:
+        out.write(frame)
+
     # Call alert checker in a separate thread and pass the faces detected
     start_alert_thread(faces)  # Start alert check thread
 
-    return results
-
+    return recognized_faces
