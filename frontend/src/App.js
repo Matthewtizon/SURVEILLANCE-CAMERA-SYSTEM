@@ -11,6 +11,7 @@ import UserManagement from './components/UserManagement';
 import ProfileManagement from './components/ProfileManagement';
 import RecordedVideo from './components/RecordedVideo';
 import AuditTrail from './components/AuditTrail';
+import AddPerson from './components/AddPerson';  // Import the new component
 
 
 const App = () => {
@@ -73,6 +74,7 @@ const App = () => {
             <Route path="/profile" element={role ? <ProfileManagement /> : <Navigate to="/login" />} />
             <Route path="/video-audit" element={role ? <AuditTrail /> : <Navigate to="/login" />} />
             <Route path="/recorded-videos" element={role ? <RecordedVideo /> : <Navigate to="/login" />} />
+            <Route path="/add-person" element={role === 'Administrator' ? <AddPerson /> : <Navigate to="/login" />} />
             <Route path="/" element={<Navigate to={role ? (role === 'Administrator' ? '/admin-dashboard' : '/security-dashboard') : '/login'} />} />
             <Route path="*" element={<Navigate to="/" />} />
         </Routes>

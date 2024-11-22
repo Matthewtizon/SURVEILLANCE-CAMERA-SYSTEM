@@ -1,4 +1,4 @@
-// Sidebar.js
+// src/components/Sidebar.js
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton } from '@mui/material';
@@ -8,6 +8,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import VideoLibraryIcon from '@mui/icons-material/VideoLibrary'; // Import icon for recorded video
+import PersonAddIcon from '@mui/icons-material/PersonAdd'; // Import icon for add person page
 import { styled } from '@mui/system';
 
 const drawerWidth = 240;
@@ -55,7 +56,7 @@ const CustomDrawer = styled(Drawer, { shouldForwardProp: (prop) => prop !== 'ope
             ...closedMixin(theme),
             '& .MuiDrawer-paper': closedMixin(theme),
         }),
-    }),
+    })
 );
 
 const Sidebar = ({ isOpen, toggleSidebar, role }) => {
@@ -98,9 +99,16 @@ const Sidebar = ({ isOpen, toggleSidebar, role }) => {
                 </ListItem>
                 <ListItem button component={Link} to="/recorded-videos">
                     <ListItemIcon>
-                        <VideoLibraryIcon /> {/* Icon for recorded videos */}
+                        <VideoLibraryIcon />
                     </ListItemIcon>
                     {isOpen && <ListItemText primary="Recorded Videos" />}
+                </ListItem>
+                {/* Add Person Item */}
+                <ListItem button component={Link} to="/add-person">
+                    <ListItemIcon>
+                        <PersonAddIcon /> {/* Icon for adding person */}
+                    </ListItemIcon>
+                    {isOpen && <ListItemText primary="Add Person" />}
                 </ListItem>
             </List>
         </CustomDrawer>

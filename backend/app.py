@@ -17,6 +17,7 @@ import datetime
 from storage import handle_detection, list_videos_in_date_range, bucket
 from urllib.parse import unquote
 from vidgear.gears import CamGear
+from dataset import create_face_dataset  # Import your function
 
 
 # Initialize the directory for saving recordings
@@ -34,8 +35,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Replace existing camera_streams with camera_streams_dict
 camera_streams_dict = {}
-
-
 
 def start_camera_stream(app, camera_id):
     with app.app_context():
@@ -323,10 +322,6 @@ def create_app():
     # Camera streaming routes
     camera_streams = {}
 
-    
-    
-
-
     def start_camera(camera_ip):
         out = None
         frame_count = 0  # Keep track of the frames
@@ -398,6 +393,22 @@ def create_app():
     def camera_status():
         camera_status_dict = {camera_ip: True for camera_ip in camera_streams.keys()}
         return jsonify(camera_status_dict), 200
+    
+    @app.route('/create-dataset', methods=['POST'])
+    @jwt_required()
+    def create_dataset():
+        try:
+            person_name = request.json.get('person_name')
+            
+            if not person_name:
+                return jsonify({'message': 'Person name is required.'}), 400
+            
+            # Run the dataset creation in a separate thread to avoid blocking the main thread
+            threading.Thread(target=create_face_dataset, args=(person_name, 500, 'dataset', 'yolov8n_100e.pt')).start()
+            
+            return jsonify({'message': f'Started creating dataset for {person_name}.'}), 200
+        except Exception as e:
+            return jsonify({'message': f'Error: {str(e)}'}), 500
 
 
 
