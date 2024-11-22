@@ -40,7 +40,7 @@ non_detected_counter = 0
 out = None
 current_recording_name = None
 
-def create_face_database(dataset_path):
+def face_database(dataset_path):
     face_db = []
     for person_folder in os.listdir(dataset_path):
         person_path = os.path.join(dataset_path, person_folder)
@@ -57,7 +57,7 @@ def create_face_database(dataset_path):
     # Save to a DataFrame for compatibility with DeepFace's find method
     return pd.DataFrame(face_db)
 
-face_database = create_face_database(dataset_path)
+face_database = face_database(dataset_path)
 
 def match_face(face):
     try:
