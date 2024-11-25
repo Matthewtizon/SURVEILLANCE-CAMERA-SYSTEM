@@ -13,6 +13,7 @@ class User(db.Model):
     full_name = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=True)
     phone_number = db.Column(db.String(20), nullable=True)
+    subscription_arn = db.Column(db.String(255), nullable=True)
 
 
 class VideoDeletionAudit(db.Model):

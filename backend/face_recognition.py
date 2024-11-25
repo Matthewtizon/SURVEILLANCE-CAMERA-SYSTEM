@@ -1,12 +1,29 @@
 import os
 import cv2
 import datetime
-from deepface import DeepFace
 from PIL import Image
 import pandas as pd
 from recognize_faces import match_face, detect_faces_yolo
 from alert import start_alert_thread
 from storage import handle_detection
+import tensorflow as tf
+import cupy as cp
+
+
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+        print("TensorFlow GPU ready.")
+    except RuntimeError as e:
+        print(f"TensorFlow error: {e}")
+
+# Test CuPy
+try:
+    gpu_array = cp.zeros((100, 100))
+    print("CuPy GPU ready.")
+except Exception as e:
+    print(f"CuPy error: {e}")
 
 # Path to dataset
 dataset_path = 'dataset'

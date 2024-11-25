@@ -136,7 +136,7 @@ def create_camera_routes(app, socketio):
         db.session.commit()
 
         print(f"Starting thread with args: {new_camera.id}")
-        thread = threading.Thread(target=start_camera_stream, args=(app, new_camera.id))
+        thread = threading.Thread(target=start_camera_stream, args=(app, new_camera.id, Camera, socketio))
         thread.start()
         camera_streams_dict[new_camera.id] = thread
 

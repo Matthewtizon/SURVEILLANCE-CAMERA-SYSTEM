@@ -27,9 +27,9 @@ def initialize():
         # Add default user if not exists
         from flask_bcrypt import Bcrypt
         bcrypt = Bcrypt(app)
-        if db.session.query(User).filter_by(username='yasoob').count() < 1:
-            hashed_password = bcrypt.generate_password_hash('strongpassword').decode('utf-8')
-            new_user = User(username='yasoob', password=hashed_password, role='Administrator', full_name='Yasoob Ali', email='yasoob@example.com', phone_number='123-456-7890')
+        if db.session.query(User).filter_by(username='Admin').count() < 1:
+            hashed_password = bcrypt.generate_password_hash('admin').decode('utf-8')
+            new_user = User(username='Admin', password=hashed_password, role='Administrator', full_name='Admin', email='Admin@example.com', phone_number='+639774314024')
             db.session.add(new_user)
             db.session.commit()
 

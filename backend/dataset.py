@@ -1,7 +1,7 @@
 import cv2
 import os
 import numpy as np
-from ultralytics import YOLO
+from retinaface import RetinaFace  # Import RetinaFace for face detection
 
 def is_blurry(image, threshold=100):
     """
@@ -33,9 +33,9 @@ def augment_image(image):
 
     return augmented_images
 
-def create_face_dataset(person_name, num_images=200, output_dir='backend/dataset', model_path='backend/yolov8n_100e.pt'):
+def create_face_dataset(person_name, num_images=200, output_dir='backend/dataset'):
     """
-    Captures face images from a webcam using YOLOv8 for face detection and saves them in a specified directory.
+    Captures face images from a webcam using RetinaFace for face detection and saves them in a specified directory.
     """
     person_dir = os.path.join(output_dir, person_name)
 
@@ -47,7 +47,6 @@ def create_face_dataset(person_name, num_images=200, output_dir='backend/dataset
         os.makedirs(output_dir)
     os.makedirs(person_dir)
 
-    model = YOLO(model_path)
     cap = cv2.VideoCapture(0)
 
     print(f"Capturing {num_images} images for {person_name}. Press 'q' to quit early.")
@@ -59,33 +58,36 @@ def create_face_dataset(person_name, num_images=200, output_dir='backend/dataset
             print("Failed to access the webcam.")
             break
 
-        results = model(frame, conf=0.5)
-        detections = results[0].boxes.data.cpu().numpy()
+        # Perform face detection with RetinaFace
+        detections = RetinaFace.detect_faces(frame)
 
-        if detections.size > 0:
+        if detections:
             # Find the closest face based on the size of the bounding box
-            largest_box = max(detections, key=lambda box: (box[2] - box[0]) * (box[3] - box[1]))
-            x1, y1, x2, y2, conf, cls = map(int, largest_box[:6])
+            largest_face = max(
+                detections.values(),
+                key=lambda face: (face["facial_area"][2] - face["facial_area"][0]) *
+                                 (face["facial_area"][3] - face["facial_area"][1])
+            )
+            x1, y1, x2, y2 = largest_face["facial_area"]
 
-            if cls == 0:  # Assuming '0' is the class ID for 'face'
-                face_crop = frame[y1:y2, x1:x2]
+            face_crop = frame[y1:y2, x1:x2]
 
-                if is_blurry(face_crop):
-                    print("Skipped a blurry image.")
-                    continue
+            if is_blurry(face_crop):
+                print("Skipped a blurry image.")
+                continue
 
-                augmented_faces = augment_image(face_crop)
+            augmented_faces = augment_image(face_crop)
 
-                for img in augmented_faces:
-                    file_path = os.path.join(person_dir, f"{person_name}_{count}.jpg")
-                    cv2.imwrite(file_path, img)
-                    count += 1
-                    if count >= num_images:
-                        break
+            for img in augmented_faces:
+                file_path = os.path.join(person_dir, f"{person_name}_{count}.jpg")
+                cv2.imwrite(file_path, img)
+                count += 1
+                if count >= num_images:
+                    break
 
-                # Draw a green bounding box around the closest face
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                cv2.putText(frame, "Closest Face", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            # Draw a green bounding box around the closest face
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, "Closest Face", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
         cv2.imshow(f"Capturing Faces for {person_name}", frame)
 

@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, request
+import shutil
+from flask import Flask, jsonify, request, send_from_directory
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
@@ -16,6 +17,9 @@ import threading
 RECORDINGS_DIR = os.path.join(os.getcwd(), "recordings")
 if not os.path.exists(RECORDINGS_DIR):
     os.makedirs(RECORDINGS_DIR)
+
+# Dataset directory
+DATASET_DIR = os.path.join(os.getcwd(), "dataset")
 
 
 # Initialize SocketIO
@@ -75,11 +79,54 @@ def create_app():
                 return jsonify({'message': 'Person name is required.'}), 400
             
             # Run the dataset creation in a separate thread to avoid blocking the main thread
-            threading.Thread(target=create_face_dataset, args=(person_name, 500, 'dataset', 'yolov8n_100e.pt')).start()
+            threading.Thread(target=create_face_dataset, args=(person_name, 500, 'dataset')).start()
             
             return jsonify({'message': f'Started creating dataset for {person_name}.'}), 200
         except Exception as e:
             return jsonify({'message': f'Error: {str(e)}'}), 500
+        
+    @app.route('/api/dataset', methods=['GET'])
+    @jwt_required()
+    def get_dataset():
+        try:
+            dataset_content = [
+                {
+                    "name": name,
+                    "is_directory": os.path.isdir(os.path.join(DATASET_DIR, name))
+                }
+                for name in os.listdir(DATASET_DIR)
+            ]
+            return jsonify({"success": True, "data": dataset_content}), 200
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+        
+    @app.route('/api/dataset/files/<path:filename>', methods=['GET'])
+    @jwt_required()
+    def get_dataset_file(filename):
+        try:
+            return send_from_directory(DATASET_DIR, filename)
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+        
+    @app.route('/api/dataset', methods=['DELETE'])
+    @jwt_required()
+    def delete_dataset():
+        data = request.json
+        person_name = data.get('person_name')
+
+        if not person_name:
+            return jsonify({"success": False, "error": "Person name is required"}), 400
+
+        person_path = os.path.join(DATASET_DIR, person_name)
+
+        if not os.path.exists(person_path):
+            return jsonify({"success": False, "error": "Directory does not exist"}), 404
+
+        try:
+            shutil.rmtree(person_path)
+            return jsonify({"success": True, "message": f"Dataset for '{person_name}' deleted successfully."}), 200
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
 
 
     return app
