@@ -63,10 +63,10 @@ def recognize_faces(frame):
     recognized_faces = []
     for (x, y, w, h) in faces:
         face = frame[y:y + h, x:x + w]
-        person_name = match_face(face, dataset_path)  # Pass the dataset_path here
-        recognized_faces.append((person_name, (x, y, w, h)))
+        person_name, confidence = match_face(face, dataset_path)  # Pass the dataset_path here
+        recognized_faces.append((person_name, confidence, (x, y, w, h)))
 
-    unknown_faces_present = any(person_name == 'unknown' for person_name, _ in recognized_faces)
+    unknown_faces_present = any(person_name == 'unknown' for person_name, _, _ in recognized_faces)
 
     if unknown_faces_present:
         non_detected_counter = 0
@@ -100,5 +100,8 @@ def recognize_faces(frame):
 
     # Trigger alert logic
     start_alert_thread(recognized_faces)
+
+    # Debug output to verify structure
+    print("Recognized Faces:", recognized_faces)
 
     return recognized_faces

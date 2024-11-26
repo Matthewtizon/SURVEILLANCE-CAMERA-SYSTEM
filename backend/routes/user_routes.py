@@ -124,57 +124,6 @@ def get_users():
     
     return jsonify(user_list), 200
 
-@user_bp.route('/api/users/<int:user_id>', methods=['PUT'])
-@jwt_required()
-def update_user(user_id):
-    data = request.get_json()
-
-    # Fetch the user from the database
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"message": "User not found"}), 404
-
-    # Update user information
-    user.username = data.get('username', user.username)
-    user.full_name = data.get('full_name', user.full_name)
-    user.email = data.get('email', user.email)
-    
-    # Check if phone number is being updated
-    new_phone_number = data.get('phone_number', user.phone_number)
-    if new_phone_number != user.phone_number:
-        user.phone_number = new_phone_number
-        # Update subscription (e.g., AWS SNS or any service you're using)
-        update_subscription(user.subscription_arn, new_phone_number)
-
-    user.role = data.get('role', user.role)
-
-    db.session.commit()  # Commit changes to the database
-    return jsonify({"message": "User updated successfully"}), 200
-
-
-# Define the function to update the subscription
-def update_subscription(subscription_arn, new_phone_number):
-    # Implement your logic to update the subscription here
-    # Example using AWS SNS (if your subscription is related to AWS SNS):
-    import boto3
-
-    sns = boto3.client('sns')
-
-    # Assuming the subscription ARN is used to update the phone number
-    response = sns.set_subscription_attributes(
-        SubscriptionArn=subscription_arn,
-        AttributeName='Endpoint',
-        AttributeValue=new_phone_number  # Update with new phone number
-    )
-
-    # You can check the response and handle any errors or logging needed.
-    if response.get('ResponseMetadata', {}).get('HTTPStatusCode') == 200:
-        print(f"Successfully updated subscription for ARN {subscription_arn}")
-    else:
-        print(f"Failed to update subscription for ARN {subscription_arn}")
-
-
-
 @user_bp.route('/api/users/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
@@ -211,13 +160,17 @@ def delete_user(user_id):
     return jsonify({'message': 'User deleted successfully unsubscribed to notifications!'}), 200
 
 
+from sqlalchemy import and_
+
 @user_bp.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     if not data or not data.get('username') or not data.get('password'):
         return jsonify({'message': 'Invalid input'}), 400
 
-    user = User.query.filter_by(username=data['username']).first()
+    # Explicit case-sensitive username lookup
+    user = User.query.filter(and_(User.username == data['username'])).first()
+    
     if user and bcrypt.check_password_hash(user.password, data['password']):
         access_token = create_access_token(identity={'username': user.username, 'role': user.role})
         user_info = {
@@ -227,6 +180,72 @@ def login():
         return jsonify(access_token=access_token, user_info=user_info)
     
     return jsonify({'message': 'Invalid credentials'}), 401
+
+@user_bp.route('/api/users/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def edit_user(user_id):
+    data = request.json
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+
+    # Store the old phone number to unsubscribe if changed
+    old_phone_number = user.phone_number
+
+    user.full_name = data.get('full_name', user.full_name)
+    user.email = data.get('email', user.email)
+    user.phone_number = data.get('phone_number', user.phone_number)
+    user.role = data.get('role', user.role)
+
+    # Check if the phone number is changed
+    if old_phone_number != user.phone_number:
+        # Unsubscribe from SNS if the old number exists
+        if old_phone_number:
+            try:
+                sns_client = boto3.client(
+                    'sns',
+                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
+                    aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
+                    region_name=os.getenv("AWS_REGION")
+                )
+                sns_client.unsubscribe(SubscriptionArn=user.subscription_arn)
+                print(f"Unsubscribed phone number {old_phone_number} from SNS successfully.")
+            except Exception as e:
+                print(f"Error unsubscribing {old_phone_number} from SNS: {e}")
+                return jsonify({'message': 'Error unsubscribing old phone number from SNS'}), 500
+
+            # Remove the old subscription ARN from the user model before committing
+            user.subscription_arn = None
+            db.session.commit()
+
+        # Format the new phone number and subscribe it
+        new_phone_number = user.phone_number
+        formatted_phone_number = validate_and_format_phone_number(new_phone_number)
+        if new_phone_number and not formatted_phone_number:
+            return jsonify({'message': 'Invalid phone number format'}), 400
+
+        if formatted_phone_number:
+            try:
+                response = sns_client.subscribe(
+                    TopicArn=SNS_TOPIC_ARN,
+                    Protocol='sms',
+                    Endpoint=formatted_phone_number
+                )
+                subscription_arn = response['SubscriptionArn']
+                print(f"Phone number {formatted_phone_number} subscribed successfully with ARN: {subscription_arn}")
+
+                # Save the new subscription ARN in the User model
+                user.subscription_arn = subscription_arn
+                db.session.commit()
+            except Exception as e:
+                print(f"Failed to subscribe phone number {formatted_phone_number} to SNS: {e}")
+                return jsonify({'message': 'Failed to subscribe new phone number to SNS'}), 500
+
+    db.session.commit()
+
+    return jsonify({"message": "User updated successfully."}), 200
+
 
 @user_bp.route('/api/profile', methods=['GET'])
 @jwt_required()

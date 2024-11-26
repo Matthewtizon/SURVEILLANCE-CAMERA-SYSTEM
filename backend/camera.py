@@ -53,10 +53,10 @@ def start_camera_stream(app, camera_id, Camera, socketio):
 
                     check_alert(recognized_faces)
 
-                    for person_name, (x, y, w, h) in recognized_faces:
-                        color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
-                        cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-                        cv2.putText(frame, person_name.upper(), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+                    for person_name, confidence, (x, y, w, h) in recognized_faces:
+                        label = f"{person_name} ({confidence:.2f}%)"
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                        cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
                         
                     #cv2.imshow(f"Camera {camera_id}", frame)
 
@@ -98,16 +98,17 @@ def start_camera(camera_ip, camera_streams, recognize_faces, check_alert, socket
 
             check_alert(recognized_faces)
 
-            for person_name, (x, y, w, h) in recognized_faces:
-                color = (0, 255, 0) if person_name != 'unknown' else (0, 0, 255)
-                cv2.rectangle(frame, (x, y), (x+w, y+h), color, 2)
-                cv2.putText(frame, person_name.upper(), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+            for person_name, confidence, (x, y, w, h) in recognized_faces:
+                label = f"{person_name} ({confidence:.2f}%)"
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
 
-            cv2.imshow(f"Camera {camera_ip}", frame)
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            #cv2.imshow(f"Camera {camera_ip}", frame)
+
+            #if cv2.waitKey(1) & 0xFF == ord('q'):
+            #    break
             
             _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
             frame_bytes = buffer.tobytes()

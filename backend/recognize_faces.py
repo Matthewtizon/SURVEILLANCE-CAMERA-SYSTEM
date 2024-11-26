@@ -10,7 +10,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 yolo_model = YOLO("yolov8n_100e.pt").to(device)  # Pre-trained YOLOv8-Tiny for face detection
 
 # Choose the model for face recognition: 'ArcFace' or 'Facenet512'
-face_recognition_model = "Facenet512"  # Change to "ArcFace" for ArcFace
+face_recognition_model = "VGG-Face"  # Change to "ArcFace" for ArcFace
 
 def smooth_frame(frame):
     # Apply Gaussian Blur to smoothen the frame
@@ -24,12 +24,17 @@ def match_face(face, dataset_path):
             df_results = results[0]  # The first element contains a DataFrame
             if isinstance(df_results, pd.DataFrame) and not df_results.empty:
                 best_match = df_results.iloc[0]
-                if best_match['distance'] < 0.4:
-                    return os.path.basename(os.path.dirname(best_match['identity']))
-        return "unknown"
+                distance = best_match['distance']
+                threshold = 0.4  # Distance threshold for recognition
+                if distance < threshold:
+                    confidence = round((1 - distance / threshold) * 100, 2)  # Confidence as a percentage
+                    name = os.path.basename(os.path.dirname(best_match['identity']))
+                    return name, confidence
+        return "unknown", 0.0
     except Exception as e:
         print(f"Face matching error: {e}")
-        return "unknown"
+        return "unknown", 0.0
+
 
 
 def detect_faces_yolo(frame):

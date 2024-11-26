@@ -89,7 +89,21 @@ def create_face_dataset(person_name, num_images=200, output_dir='backend/dataset
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(frame, "Closest Face", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
+        # Show the frame and move the window to the center
         cv2.imshow(f"Capturing Faces for {person_name}", frame)
+        
+        # Get screen size and center the window
+        screen_width = 1920  # Replace with your screen width
+        screen_height = 1080  # Replace with your screen height
+        window_width = 640  # Replace with the desired window width
+        window_height = 480  # Replace with the desired window height
+
+        # Calculate the position for the window to be centered
+        x_pos = (screen_width - window_width) // 2
+        y_pos = (screen_height - window_height) // 2
+
+        # Move the window to the calculated position
+        cv2.moveWindow(f"Capturing Faces for {person_name}", x_pos, y_pos)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             print("Quitting early.")

@@ -1,8 +1,7 @@
-// src/components/AdminDashboard.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Box, CircularProgress, Container, Typography } from '@mui/material';
+import { Box, CircularProgress, Container, Typography, Button } from '@mui/material';
 import Header from './Header';
 import Sidebar from './SideBar';
 import './Loading.css';
@@ -12,6 +11,7 @@ const AdminDashboard = () => {
     const [username, setUsername] = useState('');
     const [role, setRole] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [streaming, setStreaming] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -43,6 +43,10 @@ const AdminDashboard = () => {
         setSidebarOpen(!sidebarOpen);
     };
 
+    const startStreaming = () => {
+        setStreaming(true);
+    };
+
     if (loading) {
         return (
             <Box className="loading-container">
@@ -60,6 +64,22 @@ const AdminDashboard = () => {
                     <Typography variant="h4" gutterBottom>
                         Welcome to the Admin Dashboard {username}
                     </Typography>
+
+                    {/* Button to start video streaming */}
+                    <Button variant="contained" color="primary" onClick={startStreaming}>
+                        Start Streaming
+                    </Button>
+
+                    {/* If streaming is true, show the video stream */}
+                    {streaming && (
+                        <Box mt={2}>
+                            <img
+                                src="http://10.242.104.90:5000/api/video_feed"  // Correct URL for the Flask video feed
+                                alt="Camera Feed"
+                                style={{ width: '100%', maxHeight: '600px' }}
+                            />
+                        </Box>
+                    )}
                 </Container>
             </Box>
         </Box>

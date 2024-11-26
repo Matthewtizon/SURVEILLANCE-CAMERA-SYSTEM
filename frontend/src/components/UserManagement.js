@@ -18,6 +18,7 @@ import {
     Slide,
     Dialog,
     DialogActions,
+    TextField,
     DialogContent,
     DialogContentText,
     DialogTitle
@@ -40,6 +41,8 @@ const UserManagement = () => {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState(null);
     const navigate = useNavigate();
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [userToEdit, setUserToEdit] = useState(null); 
 
     const fetchUserData = useCallback(async () => {
         const token = localStorage.getItem('token');
@@ -81,7 +84,7 @@ const UserManagement = () => {
 
             if (response.status === 200) {
                 setUsers(users.filter(user => user.user_id !== userToDelete.user_id));
-                setSnackbarMessage('User deleted successfully.');
+                setSnackbarMessage('User deleted successfully unsubscribed to notifications!.');
                 setSnackbarOpen(true);
                 setDeleteDialogOpen(false);
                 setUserToDelete(null);
@@ -116,6 +119,33 @@ const UserManagement = () => {
         }
     };
 
+    const handleSaveEdit = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await axios.put(
+                `http://10.242.104.90:5000/api/users/${userToEdit.user_id}`,
+                userToEdit,
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+    
+            if (response.status === 200) {
+                // Update the user list locally
+                setUsers((prevUsers) =>
+                    prevUsers.map((user) =>
+                        user.user_id === userToEdit.user_id ? userToEdit : user
+                    )
+                );
+                setSnackbarMessage('User updated successfully update subscription to notifications!.');
+                setSnackbarOpen(true);
+                setEditDialogOpen(false);
+            }
+        } catch (error) {
+            console.error('Error updating user:', error);
+        }
+    };
+
     const toggleRegisterForm = () => {
         if (role === 'Administrator' || role === 'Assistant Administrator') {
             setShowRegisterForm(!showRegisterForm);
@@ -123,6 +153,11 @@ const UserManagement = () => {
             setSnackbarMessage('Only administrators and assistant administrators can access the register form.');
             setSnackbarOpen(true);
         }
+    };
+
+    const handleEditClick = (user) => {
+        setUserToEdit(user);
+        setEditDialogOpen(true);
     };
 
     const toggleSidebar = () => {
@@ -185,6 +220,14 @@ const UserManagement = () => {
                                             <TableCell>
                                                 <Button
                                                     variant="contained"
+                                                    color="primary"
+                                                    onClick={() => handleEditClick(user)}
+                                                    style={{ marginRight: '8px' }}
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="contained"
                                                     color="secondary"
                                                     onClick={() => handleDeleteClick(user)}
                                                 >
@@ -240,6 +283,52 @@ const UserManagement = () => {
                                     </Button>
                                 </DialogActions>
                             </Dialog>
+
+                            <Dialog
+                                open={editDialogOpen}
+                                onClose={() => setEditDialogOpen(false)}
+                                aria-labelledby="edit-dialog-title"
+                                aria-describedby="edit-dialog-description"
+                            >
+                                <DialogTitle id="edit-dialog-title">Edit User</DialogTitle>
+                                <DialogContent>
+                                    <DialogContentText id="edit-dialog-description">
+                                        Update the details for user "{userToEdit?.username}".
+                                    </DialogContentText>
+                                    <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
+                                        <TextField
+                                            fullWidth
+                                            label="Full Name"
+                                            value={userToEdit?.full_name || ''}
+                                            onChange={(e) => setUserToEdit({ ...userToEdit, full_name: e.target.value })}
+                                            margin="dense"
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            label="Email"
+                                            value={userToEdit?.email || ''}
+                                            onChange={(e) => setUserToEdit({ ...userToEdit, email: e.target.value })}
+                                            margin="dense"
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            label="Phone Number"
+                                            value={userToEdit?.phone_number || ''}
+                                            onChange={(e) => setUserToEdit({ ...userToEdit, phone_number: e.target.value })}
+                                            margin="dense"
+                                        />
+                                    </Box>
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={() => setEditDialogOpen(false)} color="primary">
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={handleSaveEdit} color="primary">
+                                        Save
+                                    </Button>
+                                </DialogActions>
+                            </Dialog>
+
 
                             <Snackbar
                                 open={snackbarOpen}
