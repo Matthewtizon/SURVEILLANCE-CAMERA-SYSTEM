@@ -1,15 +1,3 @@
-Some text here 
-
-
-Step 1: Manually Add Initialization to .bashrc
-Since conda init didn't make any changes, let's manually add the required lines to your .bashrc file.
-
-Open your .bashrc file:
-
-nano ~/.bashrc
-
-Add the following lines to the end of the file:
-
 # Initialize Conda
 . /home/johnmatthew/miniconda3/etc/profile.d/conda.sh
 
