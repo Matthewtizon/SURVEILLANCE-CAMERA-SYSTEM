@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import Camera
-from camera import start_camera_stream, start_camera, camera_streams_dict, camera_streams
+from camera import start_ip_camera, start_web_camera, camera_streams_dict, camera_streams
 import threading
 import datetime
 from storage import list_videos_in_date_range, bucket
@@ -136,7 +136,7 @@ def create_camera_routes(app, socketio):
         db.session.commit()
 
         print(f"Starting thread with args: {new_camera.id}")
-        thread = threading.Thread(target=start_camera_stream, args=(app, new_camera.id, Camera, socketio))
+        thread = threading.Thread(target=start_ip_camera, args=(app, new_camera.id, Camera, socketio))
         thread.start()
         camera_streams_dict[new_camera.id] = thread
 
@@ -188,7 +188,7 @@ def create_camera_routes(app, socketio):
     @jwt_required()
     def open_camera(camera_ip):
         if camera_ip not in camera_streams:
-            thread = threading.Thread(target=start_camera, args=(camera_ip, camera_streams, recognize_faces, check_alert, socketio))
+            thread = threading.Thread(target=start_web_camera, args=(camera_ip, camera_streams, recognize_faces, check_alert, socketio))
 
             thread.start()
             camera_streams[camera_ip] = thread

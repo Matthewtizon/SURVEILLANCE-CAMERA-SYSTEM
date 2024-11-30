@@ -3,17 +3,20 @@ import cv2
 import datetime
 from PIL import Image
 import pandas as pd
-from recognize_faces import match_face, detect_faces_yolo
 from alert import start_alert_thread
 from storage import handle_detection
 import tensorflow as tf
 import cupy as cp
+from retinaface import RetinaFace  # Import RetinaFace for face detection
 
+# Set the GPU allocator to enable asynchronous memory allocation
+os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
 
-gpus = tf.config.experimental.list_physical_devices('GPU')
+gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
-        tf.config.experimental.set_memory_growth(gpus[0], True)
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
         print("TensorFlow GPU ready.")
     except RuntimeError as e:
         print(f"TensorFlow error: {e}")
@@ -59,12 +62,16 @@ def face_database(dataset_path):
 def recognize_faces(frame):
     global unknown_detected_time, recording, non_detected_counter, out, current_recording_name
 
-    faces = detect_faces_yolo(frame)
+    faces = detect_faces_retinaface(frame, min_face_size=(150, 150))
     recognized_faces = []
+
     for (x, y, w, h) in faces:
         face = frame[y:y + h, x:x + w]
-        person_name, confidence = match_face(face, dataset_path)  # Pass the dataset_path here
-        recognized_faces.append((person_name, confidence, (x, y, w, h)))
+        person_name, confidence = match_face(face, dataset_path)
+        
+        # Skip ignored faces
+        if person_name != "ignore":
+            recognized_faces.append((person_name, confidence, (x, y, w, h)))
 
     unknown_faces_present = any(person_name == 'unknown' for person_name, _, _ in recognized_faces)
 
@@ -105,3 +112,71 @@ def recognize_faces(frame):
     print("Recognized Faces:", recognized_faces)
 
     return recognized_faces
+
+
+import cv2 
+from deepface import DeepFace
+import torch  # Import torch for checking CUDA
+import pandas as pd  # For handling the DataFrame
+
+# Choose the model for face recognition: 'ArcFace' or 'Facenet512'
+face_recognition_model = "Facenet512"  # Change to "ArcFace" for ArcFace
+
+def smooth_frame(frame):
+    # Apply Gaussian Blur to smoothen the frame
+    return cv2.GaussianBlur(frame, (5, 5), 0)
+
+def match_face(face, dataset_path):
+    try:
+        # Use the selected face recognition model (either ArcFace or Facenet512)
+        results = DeepFace.find(face, db_path=dataset_path, model_name=face_recognition_model, distance_metric="cosine", enforce_detection=False)
+        
+        if isinstance(results, list) and len(results) > 0:
+            df_results = results[0]  # The first element contains a DataFrame
+            if isinstance(df_results, pd.DataFrame) and not df_results.empty:
+                best_match = df_results.iloc[0]
+                distance = best_match['distance']
+                threshold = 1  # Distance threshold for recognition
+                
+                if distance < threshold:
+                    confidence = round((1 - distance / threshold) * 100, 2)  # Confidence as a percentage
+                    
+                    # Ignore confidence scores between 1% and 69%
+                    if confidence >= 90:
+                        name = os.path.basename(os.path.dirname(best_match['identity']))
+                        return name, confidence
+                    elif confidence > 0 and confidence < 90:
+                        # Ignore mid-range scores
+                        return "ignore", 0.0
+        
+        # Default to unknown if no match is found
+        return "unknown", 0.0
+    
+    except Exception as e:
+        print(f"Face matching error: {e}")
+        return "unknown", 0.0
+
+
+def detect_faces_retinaface(frame, min_face_size=(150, 150), threshold=0.7):
+    """
+    Detect faces using RetinaFace with a minimum face size to shorten the detection range.
+    
+    :param frame: The image frame in which faces are to be detected.
+    :param min_face_size: The minimum size of the face to be detected, default is (100, 100) for closer faces.
+    :param threshold: The confidence threshold for face detection, default is 0.7.
+    :return: List of detected faces in (x, y, w, h) format.
+    """
+    # Perform face detection with RetinaFace
+    faces = RetinaFace.detect_faces(frame)
+    detected_faces = []
+
+    for key in faces:
+        # Extract the facial area
+        facial_area = faces[key]["facial_area"]
+        x, y, w, h = facial_area
+
+        # Only include faces larger than the minimum size to focus on nearby faces
+        if w >= min_face_size[0] and h >= min_face_size[1]:
+            detected_faces.append((x, y, w - x, h - y))  # Convert to (x, y, w, h) format
+    
+    return detected_faces

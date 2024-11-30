@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Box, Button, Container, TextField, Typography } from '@mui/material';
+import { Box, Button, Container, TextField, Typography, Grid, Paper } from '@mui/material';
 
 const Login = ({ setRole }) => {
     const [username, setUsername] = useState('');
@@ -49,47 +49,68 @@ const Login = ({ setRole }) => {
     };
 
     return (
-        <Container maxWidth="xs">
-            <Box mt={8} display="flex" flexDirection="column" alignItems="center">
-                <Typography variant="h4" gutterBottom>
-                    Login
-                </Typography>
-                <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        id="username"
-                        label="Username"
-                        name="username"
-                        autoComplete="username"
-                        autoFocus
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label="Password"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        sx={{ mt: 3, mb: 2 }}
-                    >
-                        Login
-                    </Button>
-                    {error && <Typography color="error">{error}</Typography>}
-                </Box>
-            </Box>
+        <Container maxWidth="md">
+            <Paper elevation={3} sx={{ mt: 8, p: 4 }}>
+                <Grid container spacing={4} alignItems="center">
+                    {/* Left Side - Title and Description */}
+                    <Grid item xs={12} md={6}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                            <Typography variant="h3" gutterBottom sx={{ fontWeight: 'bold', textAlign: 'center' }}>
+                                Face Recognition
+                            </Typography>
+                            <Typography variant="h5" color="textSecondary" gutterBottom sx={{ textAlign: 'center' }}>
+                                Intruder Detection System
+                            </Typography>
+                            <Typography variant="body1" color="textSecondary" sx={{ textAlign: 'center', mt: 2 }}>
+                                Secure access and monitor intrusions efficiently with our advanced face recognition system.
+                            </Typography>
+                        </Box>
+                    </Grid>
+                    {/* Right Side - Login Form */}
+                    <Grid item xs={12} md={6}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                            <Typography variant="h4" gutterBottom>
+                                Login
+                            </Typography>
+                            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+                                <TextField
+                                    margin="normal"
+                                    required
+                                    fullWidth
+                                    id="username"
+                                    label="Username"
+                                    name="username"
+                                    autoComplete="username"
+                                    autoFocus
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                />
+                                <TextField
+                                    margin="normal"
+                                    required
+                                    fullWidth
+                                    name="password"
+                                    label="Password"
+                                    type="password"
+                                    id="password"
+                                    autoComplete="current-password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                                <Button
+                                    type="submit"
+                                    fullWidth
+                                    variant="contained"
+                                    sx={{ mt: 3, mb: 2 }}
+                                >
+                                    Login
+                                </Button>
+                                {error && <Typography color="error">{error}</Typography>}
+                            </Box>
+                        </Box>
+                    </Grid>
+                </Grid>
+            </Paper>
         </Container>
     );
 };

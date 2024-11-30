@@ -4,7 +4,7 @@ from gevent import monkey
 from gevent.pywsgi import WSGIServer
 from app import create_app, socketio
 from models import User, Camera
-from camera import camera_streams_dict, start_camera_stream
+from camera import camera_streams_dict, start_ip_camera
 import threading
 import os
 
@@ -37,7 +37,7 @@ def initialize():
         active_cameras = Camera.query.filter_by(is_active=True).all()
         for camera in active_cameras:
             if camera.id not in camera_streams_dict:
-                thread = threading.Thread(target=start_camera_stream, args=(app, camera.id, Camera, socketio))
+                thread = threading.Thread(target=start_ip_camera, args=(app, camera.id, Camera, socketio))
                 thread.start()
                 camera_streams_dict[camera.id] = thread
 

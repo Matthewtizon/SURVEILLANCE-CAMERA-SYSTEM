@@ -41,3 +41,5 @@ __pycache__/
 
 # Ignore .pyc files
 *.pyc
+
+yolov8m_200e.pt

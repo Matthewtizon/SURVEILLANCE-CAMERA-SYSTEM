@@ -5,82 +5,103 @@ from alert import check_alert
 import logging
 from utils.camera_utils import camera_streams
 from concurrent.futures import ThreadPoolExecutor
-import cupy as cp
-
-# Initialize a thread pool executor with a max number of workers (4 in this example)
-executor = ThreadPoolExecutor(max_workers=4)
+import signal
+import time
 
 # Replace existing camera_streams with camera_streams_dict
 camera_streams_dict = {}
-camera_streams =  camera_streams
+camera_streams = camera_streams
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
 
-def start_camera_stream(app, camera_id, Camera, socketio):
+# JPEG quality as a configurable parameter
+JPEG_QUALITY = 50
+
+# ThreadPoolExecutor for parallel camera processing
+executor = ThreadPoolExecutor(max_workers=5)  # Adjust based on resources
+
+# Graceful shutdown handler
+def shutdown_handler(signum, frame):
+    logging.info("Shutting down all camera streams.")
+    for stream in camera_streams_dict.values():
+        if stream:
+            stream.stop()
+
+# Register shutdown signals
+signal.signal(signal.SIGINT, shutdown_handler)
+signal.signal(signal.SIGTERM, shutdown_handler)
+
+def process_frame(camera_id, frame, socketio):
+    """Processes a frame: face recognition, alerts, encoding, and emitting."""
+    try:
+        recognized_faces = recognize_faces(frame)
+
+        for person_name, confidence, (x, y, w, h) in recognized_faces:
+            label = f"{person_name} ({confidence:.2f}%)"
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+        check_alert(recognized_faces)  # Trigger alerts based on detection
+
+        # Encode the frame to JPEG format
+        _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
+        frame_bytes = buffer.tobytes()
+
+        # Emit the frame over socket
+        socketio.emit('video_frame', {'camera_id': camera_id, 'frame': frame_bytes})
+    except Exception as e:
+        logging.error(f"Error processing frame for camera {camera_id}: {e}")
+
+def start_ip_camera(app, camera_id, Camera, socketio):
+    """Start a camera stream."""
     with app.app_context():
-        # Fetch the camera from the database by ID
         camera = Camera.query.get(camera_id)
         if not camera:
-            print(f"Camera with ID {camera_id} not found.")
+            logging.error(f"Camera with ID {camera_id} not found.")
             return
 
         rtsp_url = camera.rtsp_url
+        logging.info(f"Starting stream for camera ID {camera_id} at {rtsp_url}.")
 
-        def stream():
-            frame_count = 0
-            # Initialize CamGear for live stream
-            stream = CamGear(
-                source=rtsp_url,
-                logging=True,
-                backend="FFMPEG",
-                **{"THREADED_QUEUE_MODE": False, "time_delay": 0}
-            ).start()
+        stream = CamGear(
+            source=rtsp_url,
+            logging=True,
+            backend="FFMPEG",
+            **{"THREADED_QUEUE_MODE": False, "time_delay": 0}
+        ).start()
 
-            try:
-                frame = stream.read()
-                if frame is None:
-                    print(f"Failed to open camera {camera_id} with RTSP URL: {rtsp_url}")
-                    return
-            except Exception as e:
-                print(f"Error initializing stream for camera {camera_id}: {e}")
-                return
+        if stream.read() is None:
+            logging.error(f"Failed to open camera {camera_id} with RTSP URL: {rtsp_url}")
+            return
 
+        camera_streams_dict[camera_id] = stream
+
+        try:
             while camera_id in camera_streams_dict:
                 frame = stream.read()
-                if frame is not None:
-                    recognized_faces = recognize_faces(frame)
+                if frame is None:
+                    logging.warning(f"Stream lost for camera {camera_id}. Attempting reconnection.")
+                    stream.stop()
+                    time.sleep(5)  # Retry after delay
+                    stream = CamGear(source=rtsp_url).start()
+                    continue
 
-                    check_alert(recognized_faces)
+                process_frame(camera_id, frame, socketio)
+                time.sleep(0.033)  # ~30 FPS
 
-                    for person_name, confidence, (x, y, w, h) in recognized_faces:
-                        label = f"{person_name} ({confidence:.2f}%)"
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                        cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-                        
-                    #cv2.imshow(f"Camera {camera_id}", frame)
+                #cv2.imshow(f"Camera {camera_id}", frame)
 
-                    #if cv2.waitKey(1) & 0xFF == ord('q'):
-                    #    break
-
-                    
-                    _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
-                    frame_bytes = buffer.tobytes()
-
-                    socketio.emit('video_frame', {'camera_id': camera_id, 'frame': frame_bytes})
-                else:
-                    break
-
+                #if cv2.waitKey(1) & 0xFF == ord('q'):
+                #    break
+        except Exception as e:
+            logging.error(f"Error during stream processing for camera {camera_id}: {e}")
+        finally:
             stream.stop()
-            print(f"Camera {camera_id} released.")
+            del camera_streams_dict[camera_id]
+            logging.info(f"Camera {camera_id} stream stopped.")
 
-        # Submit the stream task to the thread pool
-        executor.submit(stream)
-
-
-
-
-def start_camera(camera_ip, camera_streams, recognize_faces, check_alert, socketio):
+def start_web_camera(camera_ip, camera_streams, recognize_faces, check_alert, socketio):
     
     
     # Use CamGear for webcam or RTSP streams

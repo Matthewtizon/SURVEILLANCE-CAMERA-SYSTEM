@@ -1,6 +1,7 @@
 import pygame
 import time
 import threading
+from notifications import send_notification
 
 # Initialize Pygame for sound
 pygame.mixer.init()
@@ -21,6 +22,11 @@ def play_alert():
 def check_alert(faces):
     global last_detection_time, alert_triggered
 
+    # Ensure `faces` is an iterable
+    if not isinstance(faces, list):
+        print("Invalid input to check_alert; expected a list.")
+        return
+
     current_time = time.time()
 
     # Check if an unknown face is detected
@@ -37,12 +43,14 @@ def check_alert(faces):
             elapsed_time = current_time - last_detection_time
             if elapsed_time >= detection_threshold and not alert_triggered:
                 play_alert()
+                send_notification("Alert Check in the server")  # Send notification
                 print("ALERT: Unknown face detected!")
                 alert_triggered = True
     else:
         # Reset tracking variables if no unknown face is detected
         last_detection_time = None
         alert_triggered = False
+
 
 # Function to run the alert checker in a separate thread
 def start_alert_thread(faces):

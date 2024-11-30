@@ -1,4 +1,3 @@
-// src/components/Register.js
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Box, Button, Container, TextField, Typography, MenuItem, Select, InputLabel, FormControl } from '@mui/material';
@@ -7,13 +6,24 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('');
-    const [full_name, setFullname ] = useState('');
-    const [email, setEmail ] = useState('');
-    const [phone_number, setPhonenumber ] = useState('');
+    const [full_name, setFullname] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone_number, setPhonenumber] = useState('');
     const [message, setMessage] = useState('');
+    
+    // Form validation check
+    const isValidForm = () => {
+        return username && password && role && full_name && email && phone_number;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!isValidForm()) {
+            setMessage('All fields are required');
+            showSnackbarMessage('All fields are required');
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token'); // Assume token is stored in localStorage
             const response = await axios.post('http://10.242.104.90:5000/api/register', {
@@ -28,6 +38,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                     Authorization: `Bearer ${token}`
                 }
             });
+
             setMessage(response.data.message);
             showSnackbarMessage(response.data.message); // Show success message
             refreshUserData(); // Refresh the user data
@@ -82,7 +93,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                         required
                         fullWidth
                         name="full_name"
-                        label="full_name"
+                        label="Full Name"
                         type="full_name"
                         id="full_name"
                         autoComplete="full_name"
@@ -94,7 +105,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                         required
                         fullWidth
                         name="email"
-                        label="email"
+                        label="Email"
                         type="email"
                         id="email"
                         autoComplete="email"
@@ -106,7 +117,7 @@ const Register = ({ refreshUserData, showSnackbarMessage, onSuccess }) => {
                         required
                         fullWidth
                         name="phone_number"
-                        label="phone_number"
+                        label="Phone Number"
                         type="phone_number"
                         id="phone_number"
                         autoComplete="phone_number"

@@ -7,7 +7,7 @@ from config import Config
 from db import db
 from flask_socketio import SocketIO
 from dataset import create_face_dataset
-from camera import start_camera_stream, camera_streams_dict
+from camera import start_ip_camera, camera_streams_dict
 import os
 import logging
 import threading

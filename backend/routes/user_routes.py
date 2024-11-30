@@ -8,35 +8,6 @@ from notifications import *
 import phonenumbers
 from phonenumbers.phonenumberutil import NumberParseException
 
-def validate_and_format_phone_number(raw_phone_number):
-    """
-    Validate and format a phone number for the Philippines.
-
-    Args:
-        raw_phone_number (str): The raw phone number input.
-    
-    Returns:
-        str: A validated and formatted E.164 phone number.
-        None: If the phone number is invalid.
-    """
-    try:
-        # Parse the phone number, assuming it is from the Philippines
-        parsed_number = phonenumbers.parse(raw_phone_number, "PH")
-        
-        # Check if the number is valid
-        if not phonenumbers.is_valid_number(parsed_number):
-            print(f"Invalid phone number: {raw_phone_number}")
-            return None
-
-        # Format the number in E.164 format (e.g., +639XXXXXXXXX)
-        formatted_number = phonenumbers.format_number(parsed_number, phonenumbers.PhoneNumberFormat.E164)
-        return formatted_number
-
-    except NumberParseException as e:
-        print(f"Error parsing phone number: {e}")
-        return None
-
-
 bcrypt = Bcrypt()
 
 user_bp = Blueprint('user_bp', __name__)
@@ -45,61 +16,35 @@ user_bp = Blueprint('user_bp', __name__)
 @jwt_required()
 def register():
     current_user = get_jwt_identity()
-    
     if current_user['role'] == 'Security Staff':
         return jsonify({'message': 'Only administrators or assistant administrators can register new users'}), 403
 
     data = request.get_json()
     required_fields = ['username', 'password', 'role']
     if not data or not all(field in data for field in required_fields):
-        return jsonify({'message': 'Invalid input'}), 400
+        return jsonify({'message': 'Invalid input. Missing required fields.'}), 400
 
     if current_user['role'] == 'Assistant Administrator' and data['role'] != 'Security Staff':
         return jsonify({'message': 'You can only register security staff in your current role'}), 403
 
-    # Hash the password
+    # Make sure to handle optional fields gracefully
+    full_name = data.get('full_name')
+    email = data.get('email')
+    phone_number = data.get('phone_number')
+
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-
-    # Validate and format the phone number
-    raw_phone_number = data.get('phone_number')
-    formatted_phone_number = validate_and_format_phone_number(raw_phone_number)
-    if raw_phone_number and not formatted_phone_number:
-        return jsonify({'message': 'Invalid phone number format'}), 400
-
-    # Create a new user
     new_user = User(
         username=data['username'],
         password=hashed_password,
         role=data['role'],
-        full_name=data.get('full_name'),
-        email=data.get('email'),
-        phone_number=formatted_phone_number  # Store the formatted phone number
+        full_name=full_name,
+        email=email,
+        phone_number=phone_number
     )
-
-    # Add the user to the database
     db.session.add(new_user)
     db.session.commit()
+    return jsonify({'message': 'User registered successfully!'})
 
-    # Subscribe the phone number to AWS SNS if it exists
-    if formatted_phone_number:
-        try:
-            response = sns_client.subscribe(
-                TopicArn=SNS_TOPIC_ARN,
-                Protocol='sms',
-                Endpoint=formatted_phone_number
-            )
-            subscription_arn = response['SubscriptionArn']
-            print(f"Phone number {formatted_phone_number} subscribed successfully with ARN: {subscription_arn}")
-
-            # Save the subscription ARN in the User model
-            new_user.subscription_arn = subscription_arn
-            db.session.commit()  # Commit the changes to save the ARN in the database
-
-        except Exception as e:
-            print(f"Failed to subscribe phone number {formatted_phone_number} to SNS: {e}")
-            return jsonify({'message': 'User registered, but failed to subscribe phone number to notifications'}), 500
-
-    return jsonify({'message': 'User registered successfully and subscribed to notifications!'})
 
 
 
@@ -135,23 +80,6 @@ def delete_user(user_id):
     if not user:
         return jsonify({'message': 'User not found'}), 404
 
-    # Unsubscribe from SNS if the user has a subscription ARN
-    if user.subscription_arn:
-        try:
-            # Create an SNS client with region specification
-            sns_client = boto3.client(
-                'sns',
-                aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
-                aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
-                region_name=os.getenv("AWS_REGION")  # Specify region here
-            )
-
-            # Unsubscribe from the SNS topic
-            sns_client.unsubscribe(SubscriptionArn=user.subscription_arn)
-            print(f"Unsubscribed phone number {user.phone_number} from SNS successfully.")
-        except Exception as e:
-            print(f"Error unsubscribing: {e}")
-            return jsonify({'message': 'Error unsubscribing from SNS'}), 500
 
     # Delete the user from the database
     db.session.delete(user)
@@ -190,57 +118,11 @@ def edit_user(user_id):
     if not user:
         return jsonify({"message": "User not found"}), 404
 
-    # Store the old phone number to unsubscribe if changed
-    old_phone_number = user.phone_number
-
     user.full_name = data.get('full_name', user.full_name)
     user.email = data.get('email', user.email)
     user.phone_number = data.get('phone_number', user.phone_number)
     user.role = data.get('role', user.role)
 
-    # Check if the phone number is changed
-    if old_phone_number != user.phone_number:
-        # Unsubscribe from SNS if the old number exists
-        if old_phone_number:
-            try:
-                sns_client = boto3.client(
-                    'sns',
-                    aws_access_key_id=os.getenv("AWS_ACCESS_KEY"),
-                    aws_secret_access_key=os.getenv("AWS_SECRET_KEY"),
-                    region_name=os.getenv("AWS_REGION")
-                )
-                sns_client.unsubscribe(SubscriptionArn=user.subscription_arn)
-                print(f"Unsubscribed phone number {old_phone_number} from SNS successfully.")
-            except Exception as e:
-                print(f"Error unsubscribing {old_phone_number} from SNS: {e}")
-                return jsonify({'message': 'Error unsubscribing old phone number from SNS'}), 500
-
-            # Remove the old subscription ARN from the user model before committing
-            user.subscription_arn = None
-            db.session.commit()
-
-        # Format the new phone number and subscribe it
-        new_phone_number = user.phone_number
-        formatted_phone_number = validate_and_format_phone_number(new_phone_number)
-        if new_phone_number and not formatted_phone_number:
-            return jsonify({'message': 'Invalid phone number format'}), 400
-
-        if formatted_phone_number:
-            try:
-                response = sns_client.subscribe(
-                    TopicArn=SNS_TOPIC_ARN,
-                    Protocol='sms',
-                    Endpoint=formatted_phone_number
-                )
-                subscription_arn = response['SubscriptionArn']
-                print(f"Phone number {formatted_phone_number} subscribed successfully with ARN: {subscription_arn}")
-
-                # Save the new subscription ARN in the User model
-                user.subscription_arn = subscription_arn
-                db.session.commit()
-            except Exception as e:
-                print(f"Failed to subscribe phone number {formatted_phone_number} to SNS: {e}")
-                return jsonify({'message': 'Failed to subscribe new phone number to SNS'}), 500
 
     db.session.commit()
 

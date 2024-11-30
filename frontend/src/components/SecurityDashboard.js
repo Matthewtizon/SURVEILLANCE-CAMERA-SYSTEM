@@ -1,11 +1,11 @@
-// src/components/SecurityDashboard.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Box, CircularProgress, Container, Typography } from '@mui/material';
+import { Box, CircularProgress, Container, Typography, IconButton } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import Header from './Header';
 import Sidebar from './SideBar';
-import './Loading.css'; // Import the CSS for consistent loading spinner styling
+import './Dashboard.css'; // Use a separate CSS file for custom styles.
 
 const SecurityDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -46,20 +46,41 @@ const SecurityDashboard = () => {
 
     if (loading) {
         return (
-            <Box className="loading-container">
+            <Box className="loading-container" display="flex" justifyContent="center" alignItems="center" height="100vh">
                 <CircularProgress />
             </Box>
         );
     }
 
     return (
-        <Box display="flex">
-            <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
-            <Box className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`} flexGrow={1}>
+        <Box display="flex" minHeight="100vh" flexDirection={{ xs: 'column', md: 'row' }}>
+            {/* Sidebar - Hidden for smaller screens */}
+            {sidebarOpen && (
+                <Box display={{ xs: 'none', md: 'block' }}>
+                    <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
+                </Box>
+            )}
+            {/* Main Content */}
+            <Box flexGrow={1} className={`main-content ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
+                {/* Header with Mobile Menu Button */}
+                <Box display={{ xs: 'flex', md: 'none' }} p={2} alignItems="center" justifyContent="space-between">
+                    <IconButton onClick={toggleSidebar}>
+                        <MenuIcon />
+                    </IconButton>
+                    <Typography variant="h6" noWrap>
+                        Security Staff Dashboard
+                    </Typography>
+                </Box>
+                {/* Header */}
                 <Header dashboardType="Security Staff" username={username} role={role} />
-                <Container>
+
+                {/* Content */}
+                <Container sx={{ mt: 4 }}>
                     <Typography variant="h4" gutterBottom>
-                        Welcome to the Security Staff Dashboard {username}
+                        Welcome, {username}!
+                    </Typography>
+                    <Typography variant="subtitle1" gutterBottom color="textSecondary">
+                        Role: {role}
                     </Typography>
                 </Container>
             </Box>

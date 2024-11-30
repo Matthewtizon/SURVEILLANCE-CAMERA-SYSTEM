@@ -85,6 +85,22 @@ const RecordedVideo = () => {
         setSidebarOpen(!sidebarOpen);
     };
 
+    // Responsive handling for mobile layout
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 600) {
+                setSidebarOpen(false); // Auto-collapse sidebar on small screens
+            } else {
+                setSidebarOpen(true);  // Expand sidebar on larger screens
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     if (loading) {
         return (
             <Box className="loading-container">

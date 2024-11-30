@@ -1,53 +1,43 @@
 /* src/components/UserManagement.css */
 
+/* Media queries for smaller screen sizes */
+@media (max-width: 600px) {
+  /* Adjust the table layout */
+  .MuiTable-root {
+    width: 100%;
+    font-size: 12px; /* Reduce font size for smaller screens */
+  }
 
-/* Modal styles */
-.modal-box {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
-  background-color: white;
-  box-shadow: 24px;
-  padding: 16px;
+  .MuiTableCell-root {
+    padding: 8px; /* Less padding for better space utilization */
+  }
+
+  /* Make buttons smaller for mobile */
+  .MuiButton-root {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  /* Adjust modal box for small screens */
+  .modal-content {
+    width: 90%; /* Set width to 90% to avoid full width */
+    max-width: 400px; /* Limit maximum width */
+    height: auto; /* Auto height to avoid full height */
+    margin: auto; /* Centering the modal */
+    padding: 20px; /* Add padding for better spacing */
+    border-radius: 8px;
+    background-color: white; /* Ensure white background */
+  }
+
+  /* Sidebar toggle button adjustment */
+  .toggle-button {
+    bottom: 10px;
+    right: 10px;
+    font-size: 12px; /* Smaller text */
+  }
+
+  /* Make the table container scrollable */
+  .MuiTableContainer-root {
+    overflow-x: auto;
+  }
 }
-
-/* Register button styles */
-.toggle-button {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-}
-
-
-.user-management-container {
-  padding: 20px;
-  margin-left: 60px; /* Adjust as needed */
-  transition: margin-left 0.3s;
-}
-
-.sidebar-open {
-  margin-left: 240px; /* Adjust based on sidebar width */
-}
-
-.modal-box {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 90%;
-  max-width: 600px;
-  background-color: white;
-  padding: 20px;
-  border-radius: 4px;
-}
-
-
-
-
-
-
-
-
-

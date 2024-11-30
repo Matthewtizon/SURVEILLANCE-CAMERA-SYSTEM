@@ -1,0 +1,14 @@
+/* For mobile, adjust the header padding */
+@media (max-width: 600px) {
+    .MuiAppBar-root {
+        padding: 10px;
+    }
+
+    .MuiTypography-h6 {
+        font-size: 1.2rem;
+    }
+
+    .MuiButton-root {
+        font-size: 0.9rem;
+    }
+}

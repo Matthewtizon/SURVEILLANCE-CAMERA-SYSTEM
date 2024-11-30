@@ -8,6 +8,7 @@ import {
     Table,
     TableBody,
     TableCell,
+    TableContainer,
     TableHead,
     TableRow,
     Typography,
@@ -131,7 +132,6 @@ const UserManagement = () => {
             );
     
             if (response.status === 200) {
-                // Update the user list locally
                 setUsers((prevUsers) =>
                     prevUsers.map((user) =>
                         user.user_id === userToEdit.user_id ? userToEdit : user
@@ -174,14 +174,29 @@ const UserManagement = () => {
     };
 
     const handleRegisterSuccess = () => {
-        setShowRegisterForm(false);
-        fetchUserData(); // Refresh user data after registration
+        setShowRegisterForm(false); // Close the register modal
+        fetchUserData(); // Refresh the user data
     };
 
     const handleDeleteDialogClose = () => {
         setDeleteDialogOpen(false);
         setUserToDelete(null);
     };
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 600) {
+                setSidebarOpen(false);
+            } else {
+                setSidebarOpen(true);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     return (
         <Box display="flex">
@@ -196,159 +211,173 @@ const UserManagement = () => {
                     ) : (
                         <>
                             <Typography variant="h4">User List</Typography>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>ID</TableCell>
-                                        <TableCell>Username</TableCell>
-                                        <TableCell>Full Name</TableCell>
-                                        <TableCell>Email</TableCell>
-                                        <TableCell>Phone Number</TableCell>
-                                        <TableCell>Role</TableCell>
-                                        <TableCell>Actions</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {users.map(user => (
-                                        <TableRow key={user.user_id}>
-                                            <TableCell>{user.user_id}</TableCell>
-                                            <TableCell>{user.username}</TableCell>
-                                            <TableCell>{user.full_name}</TableCell>
-                                            <TableCell>{user.email}</TableCell>
-                                            <TableCell>{user.phone_number}</TableCell>
-                                            <TableCell>{user.role}</TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    variant="contained"
-                                                    color="primary"
-                                                    onClick={() => handleEditClick(user)}
-                                                    style={{ marginRight: '8px' }}
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <Button
-                                                    variant="contained"
-                                                    color="secondary"
-                                                    onClick={() => handleDeleteClick(user)}
-                                                >
-                                                    Delete
-                                                </Button>
-                                            </TableCell>
+                            <TableContainer style={{ overflowX: 'auto' }}>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>ID</TableCell>
+                                            <TableCell>Username</TableCell>
+                                            <TableCell>Full Name</TableCell>
+                                            <TableCell>Email</TableCell>
+                                            <TableCell>Phone Number</TableCell>
+                                            <TableCell>Role</TableCell>
+                                            <TableCell>Actions</TableCell>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={toggleRegisterForm}
-                                className="toggle-button"
-                                style={{ position: 'absolute', bottom: 20, right: 20 }}
-                            >
-                                {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
-                            </Button>
-                            <Modal
-                                open={showRegisterForm}
-                                onClose={toggleRegisterForm}
-                                aria-labelledby="register-modal-title"
-                                aria-describedby="register-modal-description"
-                            >
-                                <Box className="modal-box">
-                                    <Register
-                                        refreshUserData={fetchUserData}
-                                        showSnackbarMessage={showSnackbarMessage}
-                                        onSuccess={handleRegisterSuccess}
-                                    />
-                                </Box>
-                            </Modal>
+                                    </TableHead>
+                                    <TableBody>
+                                        {users.map((user) => (
+                                            <TableRow key={user.user_id}>
+                                                <TableCell>{user.user_id}</TableCell>
+                                                <TableCell>{user.username}</TableCell>
+                                                <TableCell>{user.full_name}</TableCell>
+                                                <TableCell>{user.email}</TableCell>
+                                                <TableCell>{user.phone_number}</TableCell>
+                                                <TableCell>{user.role}</TableCell>
+                                                <TableCell>
+                                                    <Box display="flex" flexDirection="column">
+                                                        <Button
+                                                            variant="contained"
+                                                            color="primary"
+                                                            onClick={() => handleEditClick(user)}
+                                                            style={{ marginBottom: '8px' }}
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                        <Button
+                                                            variant="contained"
+                                                            color="secondary"
+                                                            onClick={() => handleDeleteClick(user)}
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    </Box>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
 
-                            <Dialog
-                                open={deleteDialogOpen}
-                                onClose={handleDeleteDialogClose}
-                                aria-labelledby="delete-dialog-title"
-                                aria-describedby="delete-dialog-description"
-                            >
-                                <DialogTitle id="delete-dialog-title">Confirm Deletion</DialogTitle>
-                                <DialogContent>
-                                    <DialogContentText id="delete-dialog-description">
-                                        Are you sure you want to delete the user "{userToDelete?.username}"?
-                                    </DialogContentText>
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={handleDeleteDialogClose} color="primary">
-                                        Cancel
-                                    </Button>
-                                    <Button onClick={deleteUser} color="secondary">
-                                        Delete
-                                    </Button>
-                                </DialogActions>
-                            </Dialog>
+                            <Box style={{ marginTop: '20px' }}>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={toggleRegisterForm}
+                                    className="toggle-button"
+                                >
+                                    {showRegisterForm ? 'Hide Register Form' : 'Show Register Form'}
+                                </Button>
 
-                            <Dialog
-                                open={editDialogOpen}
-                                onClose={() => setEditDialogOpen(false)}
-                                aria-labelledby="edit-dialog-title"
-                                aria-describedby="edit-dialog-description"
-                            >
-                                <DialogTitle id="edit-dialog-title">Edit User</DialogTitle>
-                                <DialogContent>
-                                    <DialogContentText id="edit-dialog-description">
-                                        Update the details for user "{userToEdit?.username}".
-                                    </DialogContentText>
-                                    <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
-                                        <TextField
-                                            fullWidth
-                                            label="Full Name"
-                                            value={userToEdit?.full_name || ''}
-                                            onChange={(e) => setUserToEdit({ ...userToEdit, full_name: e.target.value })}
-                                            margin="dense"
-                                        />
-                                        <TextField
-                                            fullWidth
-                                            label="Email"
-                                            value={userToEdit?.email || ''}
-                                            onChange={(e) => setUserToEdit({ ...userToEdit, email: e.target.value })}
-                                            margin="dense"
-                                        />
-                                        <TextField
-                                            fullWidth
-                                            label="Phone Number"
-                                            value={userToEdit?.phone_number || ''}
-                                            onChange={(e) => setUserToEdit({ ...userToEdit, phone_number: e.target.value })}
-                                            margin="dense"
+                                <Modal
+                                    open={showRegisterForm}
+                                    onClose={toggleRegisterForm}
+                                    aria-labelledby="register-modal-title"
+                                    aria-describedby="register-modal-description"
+                                >
+                                    <Box className="modal-content">
+                                        <Register 
+                                            refreshUserData={fetchUserData} 
+                                            showSnackbarMessage={showSnackbarMessage} 
+                                            onSuccess={handleRegisterSuccess} 
                                         />
                                     </Box>
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={() => setEditDialogOpen(false)} color="primary">
-                                        Cancel
-                                    </Button>
-                                    <Button onClick={handleSaveEdit} color="primary">
-                                        Save
-                                    </Button>
-                                </DialogActions>
-                            </Dialog>
-
-
-                            <Snackbar
-                                open={snackbarOpen}
-                                autoHideDuration={2000}
-                                onClose={handleSnackbarClose}
-                                message={snackbarMessage}
-                                TransitionComponent={SlideTransition}
-                                classes={{ root: 'snackbar-top-center' }}
-                            />
+                                </Modal>
+                            </Box>
                         </>
                     )}
                 </Container>
+
+                <Snackbar
+                    open={snackbarOpen}
+                    onClose={handleSnackbarClose}
+                    message={snackbarMessage}
+                    TransitionComponent={Slide}
+                    autoHideDuration={3000}
+                />
+
+                {/* Delete Dialog */}
+                <Dialog open={deleteDialogOpen} onClose={handleDeleteDialogClose}>
+                    <DialogTitle>Confirm Deletion</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>
+                            Are you sure you want to delete the user {userToDelete?.username}?
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleDeleteDialogClose} color="primary">
+                            Cancel
+                        </Button>
+                        <Button onClick={deleteUser} color="secondary">
+                            Delete
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Edit Dialog */}
+                <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+                    <DialogTitle>Edit User</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>
+                            Edit the details of the user.
+                        </DialogContentText>
+                        <TextField
+                            label="Username"
+                            value={userToEdit?.username || ''}
+                            onChange={(e) =>
+                                setUserToEdit({ ...userToEdit, username: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                        />
+                        <TextField
+                            label="Full Name"
+                            value={userToEdit?.full_name || ''}
+                            onChange={(e) =>
+                                setUserToEdit({ ...userToEdit, full_name: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                        />
+                        <TextField
+                            label="Email"
+                            value={userToEdit?.email || ''}
+                            onChange={(e) =>
+                                setUserToEdit({ ...userToEdit, email: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                        />
+                        <TextField
+                            label="Phone Number"
+                            value={userToEdit?.phone_number || ''}
+                            onChange={(e) =>
+                                setUserToEdit({ ...userToEdit, phone_number: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                        />
+                        <TextField
+                            label="Role"
+                            value={userToEdit?.role || ''}
+                            onChange={(e) =>
+                                setUserToEdit({ ...userToEdit, role: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                        />
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setEditDialogOpen(false)} color="primary">
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveEdit} color="secondary">
+                            Save
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </Box>
         </Box>
     );
-};
-
-// Transition component for Snackbar
-const SlideTransition = (props) => {
-    return <Slide {...props} direction="down" />;
 };
 
 export default UserManagement;

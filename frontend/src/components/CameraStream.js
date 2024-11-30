@@ -213,6 +213,22 @@ const CameraStream = () => {
         }
     };
 
+    // Responsive handling for mobile layout
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 600) {
+                setSidebarOpen(false); // Auto-collapse sidebar on small screens
+            } else {
+                setSidebarOpen(true);  // Expand sidebar on larger screens
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial check
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
         <Box display="flex">
             <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} role={role} />
