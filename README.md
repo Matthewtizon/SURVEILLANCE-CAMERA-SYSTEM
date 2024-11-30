@@ -1,32 +1,3 @@
-# Initialize Conda
-. /home/johnmatthew/miniconda3/etc/profile.d/conda.sh
-
-Save and exit (in nano, press CTRL + X, then Y, then Enter).
-
-Step 2: Reload the Shell Configuration
-After making these changes, apply them by running:
-
-
-source ~/.bashrc
-Step 3: Verify Conda Initialization
-Now, check if conda is initialized by trying to activate your environment:
-
-
-conda activate capstone
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Steps 
 
 Go to anaconda prompt
