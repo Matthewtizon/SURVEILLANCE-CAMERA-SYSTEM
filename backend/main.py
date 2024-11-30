@@ -33,18 +33,11 @@ def initialize():
             db.session.add(new_user)
             db.session.commit()
 
-        # Start active cameras
-        active_cameras = Camera.query.filter_by(is_active=True).all()
-        for camera in active_cameras:
-            if camera.id not in camera_streams_dict:
-                thread = threading.Thread(target=start_ip_camera, args=(app, camera.id, Camera, socketio))
-                thread.start()
-                camera_streams_dict[camera.id] = thread
-
     # Register the signal handler for SIGINT (Ctrl+C)
     signal.signal(signal.SIGINT, signal_handler)
 
     try:
+        global http_server  # Ensure it's globally accessible
         http_server = WSGIServer(('0.0.0.0', 5000), app)
         logging.info("Server is running on http://0.0.0.0:5000")
         http_server.serve_forever()

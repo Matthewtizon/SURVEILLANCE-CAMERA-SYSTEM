@@ -102,19 +102,16 @@ def start_ip_camera(app, camera_id, Camera, socketio):
             logging.info(f"Camera {camera_id} stream stopped.")
 
 def start_web_camera(camera_ip, camera_streams, recognize_faces, check_alert, socketio):
-    
-    
     # Use CamGear for webcam or RTSP streams
     stream = CamGear(source=int(camera_ip)).start()  # For webcam, pass the index; for RTSP, pass the URL
     
     if not stream:
-        print(f"Failed to open camera {camera_ip}")
+        logging.error(f"Failed to open camera {camera_ip}")
         return
 
     while camera_ip in camera_streams:
         frame = stream.read()
         if frame is not None:
-
             recognized_faces = recognize_faces(frame)            
 
             check_alert(recognized_faces)
@@ -124,18 +121,18 @@ def start_web_camera(camera_ip, camera_streams, recognize_faces, check_alert, so
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
+            cv2.imshow(f"Camera {camera_ip}", frame)
 
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
-            #cv2.imshow(f"Camera {camera_ip}", frame)
-
-            #if cv2.waitKey(1) & 0xFF == ord('q'):
-            #    break
-            
-            _, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
-            frame_bytes = buffer.tobytes()
-            socketio.emit('video_frame', {'camera_ip': camera_ip, 'frame': frame_bytes})
+            # Send frame to frontend via socket
+            #_, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+            #frame_bytes = buffer.tobytes()
+            #socketio.emit('video_frame', {'camera_ip': camera_ip, 'frame': frame_bytes})
             
         else:
+            logging.warning(f"Stream from camera {camera_ip} returned None, stopping.")
             break
 
     stream.stop()
